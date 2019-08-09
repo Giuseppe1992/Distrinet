@@ -1,0 +1,5 @@
+paramiko
+boto3
+requests
+networkx
+pulp
