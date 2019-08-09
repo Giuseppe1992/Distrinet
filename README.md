@@ -1,7 +1,8 @@
 # Distrinet
 
-Distrinet is a Distributed SDN Network Emulation Tool able to run in Cloud (Amazon AWS Platform for now in this version) or Physical Clusters ( Beta Version ).
-Distrinet is based on Mininet 
+Distrinet is a Distributed SDN Network Emulation Tool able to run in Cloud (Amazon AWS Platform in this version) or Physical Clusters ( Beta Version ).
+
+Distrinet is based on [Mininet](http://mininet.org) (https://github.com/mininet/mininet)
 
 
 ## Getting Started
@@ -18,10 +19,57 @@ You need:
 ```
 sudo apt install git
 ```
+
+* pip
+```
+sudo apt install python3-pip
+```
 * boto3 
 ```
-pip install boto3
+pip3 install boto3
 ```
+
+* aws cli 
+```
+pip3 install --upgrade awscli
+```
+
+* paramiko 
+```
+pip install --upgrade paramiko
+```
+
+* You need to put your AWS Credentials in ~/.aws/credentials.
+You can create your aws_access_key_id and aws_secret_access_key from the [AWS Web interface](https://aws.amazon.com/)
+```
+mkdir ~/.aws
+vim ~/.aws/credentials
+```
+
+File ~/.aws/credentials:
+```
+[default]
+aws_access_key_id=XXXXXXXXXXXXXXXXX
+aws_secret_access_key=YYYYYYYYYYYYYYYYYYYYYY
+```
+
+#### How to create aws_access_key_id and aws_secret_access_key via [AWS Web interface](https://aws.amazon.com/)
+
+* Go to https://aws.amazon.com/ and log in
+![alt text](img/Step1.png)
+
+* Click on your username and go to "My security Credentials"
+![alt text](img/Step2.png)
+
+* On the left pannel click on "Users" and then click on your User(be sure that it has the right permissions)
+![alt text](img/Step3.png)
+
+* On Summary pannel Click on "Create access Key"
+![alt text](img/Step4.png)
+
+* Congratulation, you have a new Access Key ID and a Secret access key 
+![alt text](img/Step5.png)
+
 ### Installing
 
 
@@ -29,17 +77,19 @@ pip install boto3
 
 * Clone the repository
 
-And repeat
-
 ```
-until finished
+git clone https://github.com/Giuseppe1992/Distrinet.git
 ```
 
-End with an example of getting some data out of the system or using it for a little demo
 
-## Running the tests
+* install requirements
 
-Explain how to run the automated tests for this system
+```
+cd Distrinet
+
+```
+
+
 
 ### Break down into end to end tests
 
@@ -57,17 +107,10 @@ Add additional notes about how to deploy this on a live system
 
 ## Built With
 
-* [LXD](http://www.dropwizard.io/1.0.2/docs/) - The web framework used
-* [ANSIBLE](https://maven.apache.org/) - Dependency Management
-* [BOTO3](https://rometools.github.io/rome/) - Used to generate RSS Feeds
+* [LXD](http://www.dropwizard.io/1.0.2/docs/) - LXC Container management Tool
+* [ANSIBLE](https://maven.apache.org/) - Infrastructure Management
+* [BOTO3](https://rometools.github.io/rome/) - AWS Python api
 
-## Contributing
-
-Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
-
-## Versioning
-
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags). 
 
 ## Authors
 
