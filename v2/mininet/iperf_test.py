@@ -75,7 +75,7 @@ if __name__ == "__main__":
     # number of hosts in the dumbbell
     n = int(options.n)
 
-    topo = DumbbellTopo(n=n, pub_id=pub_id, sopts={"image":"switch","controller":"c0", 'pub_id':pub_id, "cpu":(int(n/2)+1), "memory":"4GB"}, hopts={"image":"ubuntu", 'pub_id':pub_id, "cpu":1, "memory":"2GB"}, lopts={"rate":1000,"bw":1000})
+    topo = DumbbellTopo(n=n, pub_id=pub_id, sopts={"image":"switch","controller":"c0", 'pub_id':pub_id, "cpu":1, "memory":"2GB"}, hopts={"image":"ubuntu", 'pub_id':pub_id, "cpu":1, "memory":"2GB"}, lopts={"rate":1000,"bw":1000})
 
     # should we deploy to Amazon first?
     #    nope
@@ -213,6 +213,8 @@ if __name__ == "__main__":
 
     srcLink.config(**{ 'bw' : 100})
     dstLink.config(**{ 'bw' : 100})
+    from mininet.cli import CLI
+    CLI(mn)
 
     print ("# start iperf -s")
     for h in mn.hosts:
@@ -234,9 +236,9 @@ if __name__ == "__main__":
     print (mn.hosts[half -1].waitOutput())
     for i in range(half):
         mn.hosts[i].waitOutput()
-    from mininet.cli import CLI
-    CLI(mn)
 
 
-#    input("press a key to clean stop")
+
+
+    input("press a key to clean stop")
     mn.stop()

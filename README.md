@@ -125,22 +125,20 @@ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsLyI2hW/uoiLqcJEnAnYufUge1LhnBevdVy29tI1r
 * Choose the name that you want, in my case I choosed "DistrinetKeyGiuseppe"(you need to use this name after) and paste your id_rsa.pub in Public key contents and Import it.
 ![alt text](img/Key4.png)
 
-* You can seen now that your key has bin added
+* You can seen now that your key has been added
 ![alt text](img/Key5.png)
 
 
-
-
-
-
 ### Installation
+If you are using Windows you can deploy Distrinet with Option 2.
 
-#### Option 1: install Distrinet Client on your machine (Linux and Mac Supported)
+#### Option 1: install Distrinet Client on your machine (Linux and Mac OSX Supported)
 
 * Clone the repository
 
 ```
 git clone https://github.com/Giuseppe1992/Distrinet.git
+git clone https://github.com/mininet/mininet.git
 ```
 
 
@@ -148,19 +146,49 @@ git clone https://github.com/Giuseppe1992/Distrinet.git
 
 ```
 cd Distrinet
-
+pip3 install -r requirements.txt
 ```
 
-
-
-### Break down into end to end tests
-
-Explain what these tests test and why
+* Update you PYTHONPATH with Mininet and Distrinet cloud. (export PYTHONPATH=$PYTHONPATH:mininet_path:distrinet_path)
 
 ```
-Give an example
+check the repository path.
+
+root@53942a77d770:~# ls
+Distrinet  mininet
+root@53942a77d770:~# pwd
+/root
+```
+* in this case we have both the repositories in /root. We should add /root/mininet and /root/Distrinet/v2/mininet/distrinet/cloud/
+to the PYTHONPATH
+
+```
+export PYTHONPATH=$PYTHONPATH:/root/mininet:/root/Distrinet/v2/mininet/distrinet/cloud/
 ```
 
+You are ready to run your first experiment.
+
+#### Option 2: Docker image
+TO BE DONE
+
+### Example
+
+Here we explain how to run a simple experiment.
+
+#### Case 1: you have not deployed Distrinet before
+In this case Distrinet will deploy the virtual instances for you automatically. There an example file on Distrinet/v2/mininet/iperf_test.py
+* Go to Distrinet/v2/mininet/
+```
+cd  /root/Distrinet/v2/mininet/
+```
+
+* you need to edit some lines; you can use the editor that you prefer. in this case I am using vim.
+```
+vim iperf_test.py
+```
+
+* at line 98 you have to modify the parameter 'keyname': 'pub_dsaucez' with the name that you assigned to your public key in AWS, in my case I have to modify in: 'keyname': 'DistrinetKeyGiuseppe' 
+* at line 99  and line 102 you have to modify the parameter 'ImageId': 'ami-xxxxx' you need to find the correct ami-ID in your region.
 
 
 ## Deployment
@@ -186,6 +214,4 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 ## Acknowledgments
 
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
+* Inspiration from [Maxinet](https://maxinet.github.io) and [Containernet](https://containernet.github.io) projects

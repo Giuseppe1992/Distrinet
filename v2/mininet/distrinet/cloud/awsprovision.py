@@ -8,7 +8,7 @@ AWS_REGION = 'eu-central-1'
 SRC_PLAYBOOKS_DIR = "../../../../src/playbooks"
 DST_PLAYBOOKS_DIR = "/tmp/playbooks"
 MAIN_USER = "ubuntu"
-KEY_PAIR_NAME = 'DistrinetKeyGiuseppe'
+KEY_PAIR_NAME = 'DistrinetKey'
 IP_PERMISSION = [{'IpProtocol': "-1", 'FromPort': 1, 'ToPort': 65353, 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]}]
 
 class distrinetAWS(Provision):
