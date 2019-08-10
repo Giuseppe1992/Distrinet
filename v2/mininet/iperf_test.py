@@ -90,7 +90,7 @@ if __name__ == "__main__":
     #    yep
     else:
         print ("# Deploy on Amazon")
-        from distrinet.cloud.awsprovisiondsaucez import distrinetAWS
+        from distrinet.cloud.awsprovision import distrinetAWS
 
         vpcname = "demo_{}".format(int(time.time()))
         o = distrinetAWS(VPCName=vpcname, addressPoolVPC="10.0.0.0/16", publicSubnetNetwork='10.0.0.0/24',

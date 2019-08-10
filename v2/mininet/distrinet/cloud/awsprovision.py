@@ -5,7 +5,7 @@ import os
 import paramiko
 
 AWS_REGION = 'eu-central-1'
-SRC_PLAYBOOKS_DIR = "../../../../src/playbooks"
+SRC_PLAYBOOKS_DIR = "../../src/playbooks"
 DST_PLAYBOOKS_DIR = "/tmp/playbooks"
 MAIN_USER = "ubuntu"
 KEY_PAIR_NAME = 'DistrinetKey'

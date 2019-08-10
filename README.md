@@ -7,10 +7,10 @@ Distrinet is based on [Mininet](http://mininet.org) (https://github.com/mininet/
 
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
 
 ### Prerequisites
-Distrinet is compatible with python 3.6 or latest versions.
+Distrinet is compatible with python 3.6 or grater versions.
 
 You need:
 * an Amazon AWS account [link](https://aws.amazon.com/)
@@ -36,7 +36,7 @@ pip3 install --upgrade awscli
 
 * paramiko 
 ```
-pip install --upgrade paramiko
+pip3 install --upgrade paramiko
 ```
 
 * You need to put your AWS Credentials in ~/.aws/credentials.
@@ -154,8 +154,10 @@ pip3 install -r requirements.txt
 ```
 check the repository path.
 
+root@53942a77d770:~/Distrinet# cd ..
 root@53942a77d770:~# ls
 Distrinet  mininet
+
 root@53942a77d770:~# pwd
 /root
 ```
@@ -188,8 +190,14 @@ vim iperf_test.py
 ```
 
 * at line 98 you have to modify the parameter 'keyname': 'pub_dsaucez' with the name that you assigned to your public key in AWS, in my case I have to modify in: 'keyname': 'DistrinetKeyGiuseppe' 
-* at line 99  and line 102 you have to modify the parameter 'ImageId': 'ami-xxxxx' you need to find the correct ami-ID in your region.
+* at line 99  and line 102 you have to modify the parameter 'ImageId': 'ami-xxxxx' you need to find the correct ami-ID in your region for Ubuntu:18.04 .
 
+* You are ready to run your first Distrinet experiment :-)
+```
+python3 iperf_test.py --pub-id="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDgEnskmrOMpOht9KZV2rIYYLKkw4BSd8jw4t9cJKclE9BEFyPFr4H4O0KR85BP64dXQgAYumHv9ufnNe1jntLhilFql2uXmLcaJv5nDFdn7YEd01GUN2QUkNy6yguTO8QGmqnpKYxYiKz3b8mWDWY2vXaPvtHksaGJu2BFranA3dEuCFsVEP4U295z6LfG3K0vr+M0xawhJ8GRUnX+EyjK5rCOn0Nc04CmSVjIpNazyXyni4cW4q8FUADtxoi99w9fVIlFcdMAgoS65FxAxOF11bM6EzbJczdN4d9IjS4NPBqcWjwCH14ZWUAXvv3t090tUQOLGdDOih+hhPjHTAZt root@7349f78b2047" -n 4
+```
+In --pub-id you have to specify the id_rsa.pub created before (in this version you have to specify, we will make it easier in the next version).
+With -n you specify the number of virtual host in a Dumb Bell topology, so it has to be multiple of 2.
 
 ## Deployment
 
@@ -197,9 +205,9 @@ Add additional notes about how to deploy this on a live system
 
 ## Built With
 
-* [LXD](http://www.dropwizard.io/1.0.2/docs/) - LXC Container management Tool
-* [ANSIBLE](https://maven.apache.org/) - Infrastructure Management
-* [BOTO3](https://rometools.github.io/rome/) - AWS Python api
+* [LXD](https://linuxcontainers.org/#LXD) - LXC Container management Tool
+* [ANSIBLE](https://www.ansible.com) - Infrastructure Management
+* [BOTO3](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html?id=docs_gateway) - AWS Python api
 
 
 ## Authors
