@@ -8,7 +8,7 @@
     - name  : master lxd configuration
       expect:
         echo     : yes
-        command  : lxd init
+        command  : /snap/bin/lxd init
         timeout  : 20
         responses:
           (?i)Would you like to use LXD clustering?                                       : "yes"
@@ -20,8 +20,11 @@
           (?i)Again                                                                       : "s3cr3t"
           (?i)Do you want to configure a new local storage pool?                          : "yes"
           (?i)Do you want to configure a new remote storage pool?                         : "no"
-          (?i)Name of the storage backend to use                                          : "dir"
+          (?i)Name of the storage backend to use                                          : "zfs"
+          (?i)Create a new ZFS pool?                                                      : "yes"
+          (?i)Would you like to use an existing block device?                             : "no"
           (?i)Would you like to connect to a MAAS server?                                 : "no"
+          (?i)Size in GB of the new loop device                                           : "15GB"
           (?i)Would you like to configure LXD to use an existing bridge or host interface?: "no"
           (?i)Would you like to create a new Fan overlay network?                         : "no"
           (?i)Would you like stale cached images to be updated automatically?             : "yes"
@@ -36,7 +39,7 @@
     - name  : slaves lxd configuration
       expect:
         echo     : yes
-        command  : lxd init
+        command  : /snap/bin/lxd init
         timeout  : 20
         responses:
           (?i)Would you like to use LXD clustering?                         : "yes"
@@ -49,6 +52,7 @@
           (?i)Cluster trust password                                        : "s3cr3t"
           (?i)All existing data is lost when joining a cluster              : "yes"
           (?i)Choose the local disk or dataset for storage pool             : ""
+          (?i)for storage pool                                              : ""
           (?i)Would you like a YAML                                         : "no"
 
 - hosts      : master
@@ -57,17 +61,11 @@
     master_ip: "{{ master_ip }}"
   tasks      :
     - name   : create switch image
-      command: lxc image import ~/switch.tar.gz --alias switch --public
+      command: /snap/bin/lxc image import ~/switch.tar.gz --alias switch --public
       #
     - name   : create ubuntu18.04 image -- alias ubuntu
-      command: lxc image import ~/ubuntu.tar.gz --alias ubuntu --public
+      command: /snap/bin/lxc image import ~/ubuntu.tar.gz --alias ubuntu --public
       #
-    - name   : create ubuntu18.04 Hadoop masterimage -- alias ubuntu-hadoop-master
-      command: lxc image import ~/ubuntu-hadoop-master.tar.gz --alias ubuntu-hadoop-master --public
-      #
-    - name   : create ubuntu18.04 Hadoop slaveimage -- alias ubuntu-hadoop-slave
-      command: lxc image import ~/ubuntu-hadoop-slave.tar.gz --alias ubuntu-hadoop-slave --public
-
 
 
 

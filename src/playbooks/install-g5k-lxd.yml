@@ -49,11 +49,20 @@
       apt :
         name: openvswitch-switch
 
-    - name: install lxd
+    - name: unistall lxd
       apt :
         name: lxd
+        state: absent
 
-    - name: install lxd-client
+    - name: unistall lxd-client
       apt :
         name: lxd-client
+        state: absent
+
+    - name:
+      snap :
+        name: lxd
+        classic: yes
+
+
 

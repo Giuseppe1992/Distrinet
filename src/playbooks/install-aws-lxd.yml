@@ -29,6 +29,10 @@
       apt :
         name: ethtool
 
+    - name: install ryu
+      apt :
+        name: python-ryu
+
     - name: install bridge-utils
       apt :
         name: bridge-utils
@@ -45,19 +49,29 @@
       apt :
         name: openvswitch-switch
 
-    - name: install lxd
+    - name: unistall lxd
       apt :
         name: lxd
+        state: absent
 
-    - name: install lxd-client
+    - name: unistall lxd-client
       apt :
         name: lxd-client
+        state: absent
+
+    - name: install latest lxd
+      snap :
+        name: lxd
+        classic: yes
+
 
 - hosts      : workers
   remote_user: ubuntu
+  become     : true
   tasks      :
     - name   : remove root block
       command: sudo rm -f /root/.ssh/authorized_keys
 
     - name   : allow root access
       command: sudo cp /home/ubuntu/.ssh/authorized_keys /root/.ssh/authorized_keys
+
