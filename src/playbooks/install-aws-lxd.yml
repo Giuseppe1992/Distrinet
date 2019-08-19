@@ -75,3 +75,15 @@
     - name   : allow root access
       command: sudo cp /home/ubuntu/.ssh/authorized_keys /root/.ssh/authorized_keys
 
+- hosts      : all
+  remote_user: ubuntu
+  become     : true
+  tasks      :
+    - name   : Permit User Environment
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        line: PermitUserEnvironment yes
+
+    - name   : restart ssh
+      command: /etc/init.d/ssh restart
+
