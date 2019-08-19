@@ -84,6 +84,11 @@
         path: /etc/ssh/sshd_config
         line: PermitUserEnvironment yes
 
+    - name   : create environment file
+      copy:
+        content: "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin:/var/lib/snapd/snap/bin"
+        dest: "/root/.ssh/environment"
+
     - name   : restart ssh
       command: /etc/init.d/ssh restart
 
