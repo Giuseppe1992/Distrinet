@@ -28,7 +28,7 @@ class Provision (object):
         TODO: change this function to be more generic
         :return: execute.command result, see executeCommand() Documentation
         """
-        command = 'ansible-playbook {}/configure-lxd.yml -e "master_ip={}"'.format(PlaybookPath, MasterPrivateIp)
+        command = 'ansible-playbook {}/configure-lxd-no-clustering.yml -e "master_ip={}"'.format(PlaybookPath, MasterPrivateIp)
         return Provision.executeCommand(SshSession=SshSession, command=command)
 
     @staticmethod
@@ -42,6 +42,10 @@ class Provision (object):
         """
         command = 'ansible-playbook {} --forks {}'.format(PlaybookPath, Forks)
         return Provision.executeCommand(SshSession=SshSession, command=command)
+
+    @staticmethod
+    def waitMasterUp():
+        sleep(30)
 
     @staticmethod
     def createSshSession(host, username):
