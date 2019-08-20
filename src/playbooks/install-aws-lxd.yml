@@ -29,6 +29,10 @@
       apt :
         name: ethtool
 
+    - name: install sqlite3
+      apt:
+        name: sqlite3
+
     - name: install ryu
       apt :
         name: python-ryu
@@ -49,21 +53,6 @@
       apt :
         name: openvswitch-switch
 
-    - name: unistall lxd
-      apt :
-        name: lxd
-        state: absent
-
-    - name: unistall lxd-client
-      apt :
-        name: lxd-client
-        state: absent
-
-    - name: install latest lxd
-      snap :
-        name: lxd
-        classic: yes
-
 
 - hosts      : workers
   remote_user: ubuntu
@@ -75,20 +64,4 @@
     - name   : allow root access
       command: sudo cp /home/ubuntu/.ssh/authorized_keys /root/.ssh/authorized_keys
 
-- hosts      : all
-  remote_user: ubuntu
-  become     : true
-  tasks      :
-    - name   : Permit User Environment
-      lineinfile:
-        path: /etc/ssh/sshd_config
-        line: PermitUserEnvironment yes
-
-    - name   : create environment file
-      copy:
-        content: "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin:/var/lib/snapd/snap/bin"
-        dest: "/root/.ssh/environment"
-
-    - name   : restart ssh
-      command: /etc/init.d/ssh restart
 
