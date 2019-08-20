@@ -133,7 +133,8 @@ class LxcNode(Container):
         cmd = "lxc init {} {}".format(image, self.name)
         # specify a target
         if self.target is not None:
-            cmd += " --target {}".format(self.target)
+            # cmd += " --target {}".format(self.target)
+            cmd += " ".format(self.target)
 #        cmds.append("lxc init {} {} --target {}".format(image, self.name, self.target))
         cmds.append(cmd)
 
