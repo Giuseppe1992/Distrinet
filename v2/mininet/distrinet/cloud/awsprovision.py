@@ -5,10 +5,10 @@ import os
 import paramiko
 
 AWS_REGION = 'eu-central-1'
-SRC_PLAYBOOKS_DIR = "../../src/playbooks"
-DST_PLAYBOOKS_DIR = "/root/playbooks"
+SRC_PLAYBOOKS_DIR = "../../../../src/playbooks"
+DST_PLAYBOOKS_DIR = "/tmp/playbooks"
 MAIN_USER = "ubuntu"
-KEY_PAIR_NAME = 'DistrinetKey'
+KEY_PAIR_NAME = 'DistrinetKeyGiuseppe'
 IP_PERMISSION = [{'IpProtocol': "-1", 'FromPort': 1, 'ToPort': 65353, 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]}]
 
 class distrinetAWS(Provision):
@@ -332,8 +332,6 @@ class distrinetAWS(Provision):
         commands.append('sudo cp $HOME/.ssh/id_rsa /root/.ssh/id_rsa')
         commands.append('sudo apt update ')
         commands.append('sleep 5')
-        commands.append('sudo DEBIAN_FRONTEND=noninteractive apt install -y -q software-properties-common')
-        commands.append('sudo apt-add-repository --yes --update ppa:ansible/ansible')
         commands.append('sudo DEBIAN_FRONTEND=noninteractive apt install -y -q ansible')
 
         command = ";".join(commands)
@@ -354,6 +352,8 @@ class distrinetAWS(Provision):
             command = " ssh root@{} echo '{} >> $HOME/.ssh/authorized_keys'".format(workerIp, str(sessionAuthorizedKeys,
                                                                                                   "utf-8")[:-1])
             distrinetAWS.executeCommand(SshSession=SshSession, command=command)
+
+
 
     def deploy(self):
         """
@@ -442,7 +442,6 @@ class distrinetAWS(Provision):
         sleep(5)
         self.installEnvironment(SshSession=sshRootSession, PlaybookPath=DST_PLAYBOOKS_DIR + "/install-aws-lxd.yml")
         sleep(5)
-        sshRootSession = self.createSshSession(host=bastionHostPublicIp, username="root")
         self.configureLxd(SshSession=sshRootSession, MasterPrivateIp=masterHostPrivateIp,
                           PlaybookPath=DST_PLAYBOOKS_DIR)
 
@@ -454,11 +453,11 @@ class distrinetAWS(Provision):
 if __name__ == '__main__':
     o = distrinetAWS(VPCName="DEMO", addressPoolVPC="10.0.0.0/16", publicSubnetNetwork='10.0.0.0/24',
                      privateSubnetNetwork='10.0.1.0/24',
-                     bastionHostDescription={"numberOfInstances": 1, 'instanceType': 't3.2xlarge',
+                     bastionHostDescription={"numberOfInstances": 1, 'instanceType': 'm5a.12xlarge',
                                              'KeyName': 'id_rsa',
                                              'ImageId': 'ami-090f10efc254eaf55', "BlockDeviceMappings": [
                              {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 8}}]},
-                     workersHostsDescription=[{"numberOfInstances": 1, 'instanceType': 't3.2xlarge',
+                     workersHostsDescription=[{"numberOfInstances": 1, 'instanceType': 'm5a.12xlarge',
                                                'ImageId': 'ami-090f10efc254eaf55', "BlockDeviceMappings": [
                              {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 8}}]}
                                               ])

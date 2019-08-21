@@ -29,11 +29,11 @@ def genIntfName():
     intfnum = intfnum + 1
     return "intf{}".format(intfnum)
 
-from mininet.node import Node
+
 from cloudlink import CloudLink
 
 # #####################
-class LxcNode (Node):
+class ANode (object):
     """
     SSH node
 
@@ -158,11 +158,6 @@ class LxcNode (Node):
 
         self.master = master
         self.containerInterfaces = {}
-        self.containerLinks = {}
-
-        self.image = params.get("image", None)
-        self.memory = params.get("memory", None)
-        self.cpu = params.get("cpu", None)
 
         ## == mininet =========================================================
         # Make sure class actually works
@@ -190,8 +185,6 @@ class LxcNode (Node):
         self.waiting = False
         self.readbuf = ''
 
-
-        self.inNamespace = False
 #####        # Start command interpreter shell
 #####        self.master, self.slave = None, None  # pylint
 
@@ -208,20 +201,8 @@ class LxcNode (Node):
 
         if waitStart:
             print ("#[")
-            
-            print ("\tconnecting to the target")
-            self.connectTarget()
-            self.waitConnectedTarget()
-            print ("\tconnected")
-
-            self.createContainer(**params)
+            self.createContainer()
             print ("X")
-            self.waitCreated()
-            print ("YES")
-            self.addContainerInterface(intfName="admin", brname="admin-br")
-            self.connectToAdminNetwork(master=self.master.host, target=self.target, link_id=CloudLink.newLinkId(), admin_br="admin-br")
-
-            self.configureContainer()
             self.connect()
             self.waitConnected()
             self.startShell(waitStart=waitStart)
@@ -244,17 +225,20 @@ class LxcNode (Node):
         return res.rstrip()
 
 
-    def configureContainer(self, adminbr="admin-br", wait=True):
-#        # connect the node to the admin network
-#        self.addContainerInterface(intfName="admin", brname=adminbr)
+    def configureContainer(self):
 
-        # connect the target to the admin network
-#        if not self.target in self.__class__.connectedToAdminNetwork:
-#            print (self.target, "not connected yet to admin")
-#            self.connectToAdminNetwork(master=self.master.host, target=self.target, link_id=CloudLink.newLinkId(), admin_br=adminbr)
-#            self.__class__.connectedToAdminNetwork[self.target] = True
-#        else:
-#            print (self.target, "already connected to admin")
+        # create admin network on the master
+        self.createMasterAdminNetwork(master=self.master, brname="admin-br")
+
+        # connect the node to the admin network
+        adminbr = "admin-br"
+        self.addContainerInterface(intfName="admin", brname=adminbr)
+        if not self.target in self.__class__.connectedToAdminNetwork:
+            print (self.target, "not connected yet to admin")
+            self.connectToAdminNetwork(master=self.master.host, target=self.target, link_id=CloudLink.newLinkId(), admin_br=adminbr)
+            self.__class__.connectedToAdminNetwork[self.target] = True
+        else:
+            print (self.target, "already connected to admin")
 
         # configure the node to be "SSH'able"
         cmds = []
@@ -268,18 +252,21 @@ class LxcNode (Node):
         cmds.append("lxc exec {} -- service ssh start".format(self.name))
 
         cmd = ';'.join(cmds)
-        if wait:
-            self.targetSsh.cmd(cmd)
-        else:
-            self.targetSsh.sendCmd(cmd)
+        self.targetSsh.cmd(cmd)
 
     @classmethod
     def createMasterAdminNetwork(cls, master, brname="admin-br", ip="192.168.42.1/24", **params):
-        cmds = []
-        cmds.append("brctl addbr {}".format(brname))
-        cmds.append("ifconfig {} {}".format(brname, ip))
-        cmd = ";".join(cmds)
-        master.cmd(cmd)
+        if not cls.adminNetworkCreated:
+            print ("ok on peut creer adminNetwork")
+            cmds = []
+            cmds.append("brctl addbr {}".format(brname))
+            cmds.append("ifconfig {} {}".format(brname, ip))
+            cmd = ";".join(cmds)
+            master.cmd(cmd)
+            cls.adminNetworkCreated = True
+        else:
+            print ("admin network already created")
+
 
     import re
 
@@ -300,21 +287,6 @@ class LxcNode (Node):
 
         ip = ips[ 0 ] if ips else None
         return ip
-
-    def addContainerLink(self, target1, target2, link_id, bridge1, bridge2, iface1=None,
-                         vxlan_dst_port=4789, **params):
-        """Add the link between 2 containers"""
-        vxlan_name = "vx_{}".format(link_id)
-        cmds = self.createContainerLinkCommandList(target1, target2, link_id, vxlan_name, bridge1, bridge2,
-                                                           iface1=iface1, vxlan_dst_port=vxlan_dst_port, **params)
-
-        cmd = ';'.join(cmds)
-        self.targetSsh.cmd(cmd)
-        link = params["link"]
-        self.containerLinks[link] = vxlan_name
-
-    def deleteContainerLink(self, link, **kwargs):
-        self.targetSsh.cmd("ip link delete {}".format(self.containerLinks[link]))
 
     def createContainerLinkCommandList(self, target1, target2, vxlan_id, vxlan_name, bridge1, bridge2, iface1=None,
                                        vxlan_dst_port=4789, **params):
@@ -347,75 +319,61 @@ class LxcNode (Node):
                 cmds.append('ip link set up {}'.format(v_if2))
         return cmds 
 
-    def connectToAdminNetwork(self, master, target, link_id, admin_br, wait=True, **params):
-        cmds = []
-        if not self.target in self.__class__.connectedToAdminNetwork:
-            self.__class__.connectedToAdminNetwork[self.target] = True
+    def connectToAdminNetwork(self, master, target, link_id, admin_br, **params):
+        # no need to connect admin on the same machine or if it is already connected
+        vxlan_name = "vx_{}".format(link_id)
 
-            # no need to connect admin on the same machine or if it is already connected
-            vxlan_name = "vx_{}".format(link_id)
-            
-            # locally
-            # DSA - TODO - XXX beurk bridge2 = None
-            cmds = self.createContainerLinkCommandList(target, master, link_id, vxlan_name, bridge1=admin_br, bridge2=None)
-            cmd = ';'.join(cmds)
-            print ("target {}:".format(target),cmd)
+        # locally
+        # DSA - TODO - XXX beurk bridge2 = None
+        cmds = self.createContainerLinkCommandList(target, master, link_id, vxlan_name, bridge1=admin_br, bridge2=None)
+        cmd = ';'.join(cmds)
+        self.targetSsh.cmd(cmd)
 
-            if wait:
-                self.targetSsh.cmd(cmd)
-            else:
-                self.targetSsh.sendCmd(cmd)
+        # on master
+        # DSA - TODO - XXX beurk bridge2 = None
+        cmds = self.createContainerLinkCommandList(master, target, link_id, vxlan_name, bridge1=admin_br, bridge2=None)
+        cmd = ';'.join(cmds)
+        self.master.cmd(cmd)
 
-            # on master
-            # DSA - TODO - XXX beurk bridge2 = None
-            cmds = self.createContainerLinkCommandList(master, target, link_id, vxlan_name, bridge1=admin_br, bridge2=None)
-            cmd = ';'.join(cmds)
-
-            print ("master",cmd)
-            if wait:
-                self.master.cmd(cmd)
-                cmds = []
-        return cmds
-
-
-    def connectTarget(self):
+    def createContainer(self, image="ubuntu", cpu=1, memory="1GB", **params):
+        print ("\tconnecting to the target")
         self.targetSsh.connect()
-    def waitConnectedTarget(self):
         self.targetSsh.waitConnected()
+        print ("\tconnected")
 
-    def createContainer(self, **params): 
-################################################################################        time.sleep(1.0)
-        print ("\tcreate container ({} {} {})".format(self.image, self.cpu, self.memory))
+        print ("\tcreate container")
         cmds = []
         # initialise the container
-        cmd = "lxc init {} {} ".format(self.image, self.name)
+        cmd = "lxc init {} {}".format(image, self.name)
         # specify a target
-#XXX        if self.target is not None:
-#XXX            cmd += " --target {}".format(self.target)
-        print (">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", cmd)
+        if self.target is not None:
+            cmd += " --target {}".format(self.target)
         cmds.append(cmd)
 
         # limit resources
-        if self.cpu:
-            cmds.append("lxc config set {} limits.cpu {}".format(self.name, self.cpu))
-        if self.memory:
-            cmds.append("lxc config set {} limits.memory {}".format(self.name, self.memory))
+        if cpu:
+            cmds.append("lxc config set {} limits.cpu {}".format(self.name, cpu))
+        if memory:
+            cmds.append("lxc config set {} limits.memory {}".format(self.name, memory))
 
         # start the container
         cmds.append("lxc start {}".format(self.name))
 
         cmd = ";".join(cmds)
-        self.targetSsh.sendCmd(cmd)
+        self.targetSsh.cmd(cmd)
 
-    def waitCreated(self):
-        self.targetSsh.waitOutput()
+        if self.target is None: 
+            self.target = self.whereIsDeployed()
+        print ("it has been deployed on {}".format(self.target))
+
+        
         print ("\tcontainer created")
-#        self.configureContainer()
-#        print ("master configured")
-#        print ("]")
+        self.configureContainer()
+        print ("master configured")
+        print ("]")
 
 
-    def addContainerInterface(self, intfName, devicename=None, brname=None, wait=True, **params):
+    def addContainerInterface(self, intfName, devicename=None, brname=None, **params):
         """
         Add the interface with name intfName to the container that is
         associated to the bridge named name-intfName-br on the host
@@ -430,21 +388,12 @@ class LxcNode (Node):
         cmds.append("ip link set up {}".format(brname))
 
         cmd = ";".join(cmds)
-
-        if wait:
-            self.targetSsh.cmd(cmd)
-        else:
-            self.targetSsh.sendCmd(cmd)
+        self.targetSsh.cmd(cmd)
 
         self.containerInterfaces[intfName] = brname
 
         return brname
 
-
-    def deleteContainerInterface(self, intf, **kwargs):
-        if intf.name in self.containerInterfaces:
-            print ("delete interface {} on {}".format(intf, self.name))
-            self.targetSsh.cmd("ip link delete {}".format(self.containerInterfaces[intf.name]))
 
 # ======================================??????????????????????????>
     def createTunnel(self):
@@ -1212,7 +1161,7 @@ def main():
     waitStart = False
     n = 3
     start = time.time()
-    ip = 10
+    ip = 100
     nodes = []
 
     hosts = [host, host2, host2]

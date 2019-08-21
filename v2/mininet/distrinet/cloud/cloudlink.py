@@ -100,14 +100,17 @@ class CloudLink( Link ):
         # Effectively create the links
 ##        host_iface1 = self.params1.get("host_iface", None)
 ##        host_iface2 = self.params2.get("host_iface", None)
-        link_id = CloudLink.nextLinkId ##params["link_id"]
-        CloudLink.nextLinkId += 1
+        link_id = self.newLinkId()
 
         node1.addContainerLink(target1=node1.target, target2=node2.target, link_id=link_id, bridge1=interfaces[0], bridge2=interfaces[1], link=self)
         node2.addContainerLink(target1=node2.target, target2=node1.target, link_id=link_id, bridge1=interfaces[1], bridge2=interfaces[0], link=self)
         
-        for n in (node1, node2):
-            n.waitPendingContainerActions()
+    @classmethod
+    def newLinkId(cls):
+        link_id = CloudLink.nextLinkId
+        cls.nextLinkId += 1
+        return link_id
+
 
     # pylint: enable=too-many-branches
 
@@ -145,9 +148,6 @@ class CloudLink( Link ):
         br1 = node1.addContainerInterface(intfName=intfname1)
         br2 = node2.addContainerInterface(intfName=intfname2)
         
-        for n in (node1, node2):
-            n.waitPendingContainerActions()
-        
         return (br1, br2)
 
     # DSA - TODO implement delete interface on the host
@@ -164,8 +164,5 @@ class CloudLink( Link ):
 ##        self.intf1.node.deleteIntersendCommand("brctl delbr {}".format(self.intf1.bridge))
 ##        self.intf2.node.sendCommand("brctl delbr {}".format(self.intf2.bridge))
         
-        for node in (self.intf1.node, self.intf2.node):
-            node.waitPendingContainerActions()
-
         super().delete()
 

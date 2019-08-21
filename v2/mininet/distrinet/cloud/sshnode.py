@@ -167,7 +167,10 @@ class SshNode( Node ):
             return
 
         bash = "bash --rcfile <( echo 'PS1=\x7f') --noediting -is mininet:{}".format(self.name)
+        import time
+        print ("       Remote Popen...ing", time.time())
         self.shell = RemotePopen(args=bash, server=self.admin_ip, user=self.user, jump=self.jump)
+        print ("       Remote Popenned", time.time())
         print ("\t\t\tle shell: ", self.shell)
         self.stdin = self.shell.stdin
         self.stdout = self.shell.stdout

@@ -19,15 +19,17 @@ class LxcSwitch( LxcNode ):
     portBase = 1  # Switches start with port 1 in OpenFlow
     dpidLen = 16  # digits in dpid passed to switch
 
-    def __init__( self, name, target=None, admin_ip=None, user="root", jump=None, master=None, dpid=None, opts='', listenPort=None, **params):
+    def __init__( self, name, dpid=None, opts='', listenPort=None, **params):
         """dpid: dpid hex string (or None to derive from name, e.g. s1 -> 1)
            opts: additional switch options
            listenPort: port to listen on for dpctl connections"""
-        super(LxcSwitch, self).__init__(name=name, target=target, admin_ip=admin_ip, user=user, jump=jump, master=master, **params )
+        super(LxcSwitch, self).__init__(name=name, **params )
+        print (">>>>>>>>>>>>>>>>>>>>>>>>>>>>ICI", name)
         self.dpid = self.defaultDpid( dpid )
         self.opts = opts
         self.listenPort = listenPort
 
+        self._start()
         self.setup()
 
         self.controlIntf = Intf( 'lo', self, port=0 )
@@ -109,31 +111,13 @@ class LxcOVSSwitch( LxcSwitch ):
         pass
 
 
-#    def setup( self ):
+    # XXX - TODO DSA - make it clean
     def _start(self):
         "Make sure Open vSwitch is installed and working"
-#        pathCheck( 'ovs-vsctl',
-#                   moduleName='Open vSwitch (openvswitch.org)')
-#        # This should no longer be needed, and it breaks
-#        # with OVS 1.7 which has renamed the kernel module:
-#        #  moduleDeps( subtract=OF_KMOD, add=OVS_KMOD )
-#        out = self.cmd( 'ovs-vsctl -t 1 show' )
-#        if exitcode:
-#            error( out + err +
-#                   'ovs-vsctl exited with code %d\n' % exitcode +
-#                   '*** Error connecting to ovs-db with ovs-vsctl\n'
-#                   'Make sure that Open vSwitch is installed, '
-#                   'that ovsdb-server is running, and that\n'
-#                   '"ovs-vsctl show" works correctly.\n'
-#                   'You may wish to try '
-#                   '"service openvswitch-switch start".\n' )
-#            exit( 1 )
-        super(LxcOVSSwitch, self)._start()
-        self.cmd( 'ovs-vsctl --version' )
-        # DSA - XXX - wtf? why do I have to do it 2 times???
-        version = self.cmd( 'ovs-vsctl --version ')
-        self.OVSVersion = findall( r'\d+\.\d+', version )[ 0 ]
-##############        print ("            ", self.OVSVersion)
+####        version = self.cmd( 'ovs-vsctl --version ')
+####        print ("XXXXXXXXXXXXXX",self.name,version)
+####        self.OVSVersion = findall( r'\d+\.\d+', version )[ 0 ]
+        self.OVSVersion = '1.13'
         self.isSetup = True
 
     def isOldOVS( self ):

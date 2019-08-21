@@ -18,17 +18,21 @@ from distrinet.cloud.cloudlink import (CloudLink)
 from distrinet.distrinet import (Distrinet)
 
 
-def makeFile(net, host, lines, filename, overwrite=True):
+def makeFile(net, host, lines, filename, overwrite=True, wait=True):
     ln = 1
+    cmds = []
     for line in lines:
         command = 'echo %s' % (line)
         if overwrite and ln == 1:
             command = "%s > %s" % (command, filename)
         else:
             command = "%s >> %s"% (command, filename)
+        cmds.append(command)
 
-        net.nameToNode[host].cmd('bash -c "{}"'.format(command))
-        ln = ln + 1
+#        net.nameToNode[host].cmd('bash -c "{}"'.format(command))
+#        ln = ln + 1
+    cmd = ";".join(cmds)
+    net.nameToNode[host].cmd(cmd)
 
 def makeHosts(topo, net):
     lines = []
@@ -75,7 +79,7 @@ if __name__ == "__main__":
     # number of hosts in the dumbbell
     n = int(options.n)
 
-    topo = DumbbellTopo(n=n, pub_id=pub_id, sopts={"image":"switch","controller":"c0", 'pub_id':pub_id, "cpu":1, "memory":"2GB"}, hopts={"image":"ubuntu", 'pub_id':pub_id, "cpu":1, "memory":"2GB"}, lopts={"rate":1000,"bw":1000})
+    topo = DumbbellTopo(n=n, pub_id=pub_id, sopts={"image":"switch","controller":"c0", 'pub_id':pub_id, "cpu":(int(n/2)+1), "memory":"4GB"}, hopts={"image":"ubuntu", 'pub_id':pub_id, "cpu":1, "memory":"2GB"}, lopts={"rate":1000,"bw":1000})
 
     # should we deploy to Amazon first?
     #    nope
@@ -90,7 +94,7 @@ if __name__ == "__main__":
     #    yep
     else:
         print ("# Deploy on Amazon")
-        from distrinet.cloud.awsprovision import distrinetAWS
+        from distrinet.cloud.awsprovisiondsaucez import distrinetAWS
 
         vpcname = "demo_{}".format(int(time.time()))
         o = distrinetAWS(VPCName=vpcname, addressPoolVPC="10.0.0.0/16", publicSubnetNetwork='10.0.0.0/24',
@@ -98,7 +102,7 @@ if __name__ == "__main__":
                          bastionHostDescription={"numberOfInstances": 1, 'instanceType': 't3.2xlarge', 'KeyName': 'pub_dsaucez',
                                                  'ImageId': 'ami-03bca18cb3dc173c9',
                                                  "BlockDeviceMappings":[{"DeviceName": "/dev/sda1","Ebs" : { "VolumeSize" : 50 }}]},
-                         workersHostsDescription=[{"numberOfInstances": 1, 'instanceType': 't3.2xlarge',
+                         workersHostsDescription=[{"numberOfInstances": 4, 'instanceType': 't3.2xlarge',
                                                    'ImageId': 'ami-03bca18cb3dc173c9',
                                                    "BlockDeviceMappings":[{"DeviceName": "/dev/sda1","Ebs" : { "VolumeSize" : 50 }}]}
                                                   ])
@@ -158,14 +162,58 @@ if __name__ == "__main__":
         places["s1"] = cluster[0]
         places["s2"] = cluster[1]
         return places
-        
-    
+
+
+    def _butter(topo, cluster):
+        # two clusters and one central node:
+        assert ((len(cluster)%2 == 1) and (len(cluster) > 1))
+
+        places = {}
+        hosts = topo.hosts()
+
+        left = 0
+        right = 0
+        switch = 0
+
+        left_cluster = cluster[:int(len(cluster)/2)]
+        right_cluster = cluster[int(len(cluster)/2)+1:]
+        switch_cluster = [cluster[int(len(cluster)/2)]]
+
+        for i in range(len(hosts)):
+            if i >= int(len(hosts)/2):
+                print (hosts[i], "right")
+                target = right_cluster[right%len(right_cluster)]
+                right += 1
+            else:
+                print (hosts[i], "left")
+                target = left_cluster[left%len(left_cluster)]
+                left += 1
+
+            places[hosts[i]] = target
+
+        places["s1"] = switch_cluster[0]
+        places["s2"] = switch_cluster[0]
+        return places
+
+
+
+
+    def _roundRobin(topo, cluster):
+        places = {}
+        nodes = topo.hosts() + topo.switches()
+        for i in range(len(nodes)):
+            places[nodes[i]] = cluster[i%len(cluster)]
+        return places
+       
     print ("# compute mapping")
     from distrinet.dummymapper import DummyMapper
-    if options.single:
-        places = _singleMachine(topo, cluster)
-    else:
-        places = _twoMachines(topo, cluster)
+#    if options.single:
+#        places = _singleMachine(topo, cluster)
+#    else:
+#        places = _twoMachines(topo, cluster)
+
+#    places = _roundRobin(topo, cluster)
+    places = _butter(topo, cluster)
     mapper = DummyMapper(places=places)
 
     print ("mapping:", mapper.places)
@@ -200,7 +248,10 @@ if __name__ == "__main__":
     
     print ("# populate /etc/hosts")
     makeHosts(topo=topo, net=mn)
-   
+  
+    for host in topo.hosts():
+        mn.nameToNode[host].targetSsh.waitOutput()
+        print ("/etc/host done on ", host)
 
     print ("# configure bottleneck link to 1Gbps")
     s1=mn.get('s1')
@@ -211,10 +262,8 @@ if __name__ == "__main__":
     srcLink = links[0][0]
     dstLink = links[0][1]
 
-    srcLink.config(**{ 'bw' : 100})
-    dstLink.config(**{ 'bw' : 100})
-    from mininet.cli import CLI
-    CLI(mn)
+    srcLink.config(**{ 'bw' : 1000})
+    dstLink.config(**{ 'bw' : 1000})
 
     print ("# start iperf -s")
     for h in mn.hosts:
@@ -224,21 +273,42 @@ if __name__ == "__main__":
     l = len(mn.hosts)
     half = int(l/2)
     print ("# measure bandwidth")
-    for i in range(half):
+    for i in range(half-1):
         print ("#   between {} and {}".format(mn.hosts[i], mn.hosts[-i-1]))
-        t = 300
-        if i == half - 1:
-            time.sleep(10)
-            t = 60
+        t = 600
+#        if i == half - 1:
+#            time.sleep(10)
+#            t = 60
         mn.hosts[i].sendCmd("iperf -t {} -c {}".format(t, mn.hosts[-i-1]) )
 
-    print ("# wait for results on {}".format(mn.hosts[half - 1]))
-    print (mn.hosts[half -1].waitOutput())
-    for i in range(half):
-        mn.hosts[i].waitOutput()
+    def _parseIperf( iperfOutput ):
+        import re
+        """Parse iperf output and return bandwidth.
+           iperfOutput: string
+           returns: result string"""
+        r = r'([\d\.]+ \w+/sec)'
+        m = re.findall( r, iperfOutput )
+        if m:
+            return m[-1]
+        else:
+            # was: raise Exception(...)
+            error( 'could not parse iperf output: ' + iperfOutput )
+            return ''
 
 
+    print ("# real test between {} and {}".format(mn.hosts[half-1], mn.hosts[-(half-1)-1]))
+    iperfOutput = mn.hosts[half-1].cmd("iperf -t {} -c {}".format(10, mn.hosts[-(half-1)-1]) )
+    print (_parseIperf(iperfOutput))
+    mn.loop.stop()
+    exit()
+
+#    print ("# wait for results on {}".format(mn.hosts[half - 1]))
+#    print (mn.hosts[half -1].waitOutput())
+#    for i in range(half):
+#        mn.hosts[i].waitOutput()
+#    from mininet.cli import CLI
+#    CLI(mn)
 
 
-    input("press a key to clean stop")
+#    input("press a key to clean stop")
     mn.stop()
