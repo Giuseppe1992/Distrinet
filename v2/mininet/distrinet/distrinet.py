@@ -130,9 +130,10 @@ class Distrinet( Mininet ):
                   controller=LxcRemoteController, link=CloudLink, intf=TCIntf,
                   mapper=None,
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
+                  adminIpBase='192.168.0.1/8',
                   autoSetMacs=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, waitConnectionTimeout=5, 
-                  jump=None, user="root", master=None,
+                  jump=None, user="root", client_keys=None, master=None,
                   **kwargs):
 #####        params = {}
 #####        params.update( kwargs )
@@ -176,6 +177,15 @@ class Distrinet( Mininet ):
         hostIP = ( 0xffffffff >> self.prefixLen ) & self.ipBaseNum
         # Start for address allocation
         self.nextIP = hostIP if hostIP > 0 else 1
+
+
+        self.adminIpBase = adminIpBase
+        self.adminIpBaseNum, self.adminPrefixLen = netParse( self.adminIpBase )
+        adminIP = ( 0xffffffff >> self.adminPrefixLen ) & self.adminIpBaseNum
+        # Start for address allocation
+        self.adminNextIP = adminIP if adminIP > 0 else 1
+
+
 #        self.inNamespace = inNamespace
         self.xterms = xterms
         self.cleanup = cleanup
@@ -195,11 +205,9 @@ class Distrinet( Mininet ):
         self.controllers = []
         self.links = []
 
-
-####        self.nextLinkId = 1
-        
         self.jump = jump
         self.user = user
+        self.client_keys = client_keys
         self.master = master
 
         self.nameToNode = {}  # name to Node (Host/Switch) objects
@@ -245,7 +253,6 @@ class Distrinet( Mininet ):
             defaults.update({"target":self.mapper.place(name)})
 
         h = cls(name=name, **defaults )
-        print ("done")
         self.hosts.append( h )
         self.nameToNode[ name ] = h
         return h
@@ -282,12 +289,12 @@ class Distrinet( Mininet ):
         else:
             print ("we are missing an image for ", name)
             exit()
-#####        defaults.update({"target":"slave1"})
         
         defaults.update( params )
        
         if not cls:
             cls = self.switch
+
 
         if self.mapper:
             defaults.update({"target":self.mapper.place(name)})
@@ -437,7 +444,7 @@ class Distrinet( Mininet ):
             params1 = placement[0]
             params2 = placement[1]
 
-        # define the VXLAN id for the link
+##        # define the VXLAN id for the link
 ##        options.setdefault("link_id", self.nextLinkId)
 ##        self.nextLinkId += 1 
 
@@ -518,15 +525,6 @@ class Distrinet( Mininet ):
                 else:
                     self.addController( 'c%d' % i, cls )
 
-        self._i = 100
-        admin_ip = "192.168.42."
-        # DSA - TODO - beurk quick hack
-        def newAdminIp(address):
-            ip = address + str(self._i)
-            self._i +=  1
-            return ip
-
-#######################
         import asyncio
         from threading import Thread
         import time
@@ -544,191 +542,112 @@ class Distrinet( Mininet ):
         self.thread.start()
 
         bastion = self.jump
-        username = 'root'
         waitStart = False
-
-        client_keys=["/root/.ssh/id_rsa"]
 
         # prepare SSH connection to the master
         from distrinet.cloud.assh import ASsh
 
         info( '*** Adding hosts:\n' )
-        masterSsh = ASsh(loop=loop, host=self.master, username=username, bastion=bastion, client_keys=client_keys)
+        masterSsh = ASsh(loop=loop, host=self.master, username=self.user, bastion=bastion, client_keys=self.client_keys)
         masterSsh.connect()
         masterSsh.waitConnected()
         print ("connected to master node")
-        self.host.createMasterAdminNetwork(masterSsh, brname="admin-br", ip="192.168.42.1/24")
-        print ("admin network created on master")
+        _ip = "{}/{}".format(ipAdd(self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen), self.adminPrefixLen)
+        self.adminNextIP += 1
+        self.host.createMasterAdminNetwork(masterSsh, brname="admin-br", ip=_ip)
+        print ("admin network created on master", _ip)
 
 
-        # batch size 
-        bs = 1000
         # == Hosts ===========================================================
-        import math
-        a = topo.hosts()
-        for i  in range(int(math.ceil(len(a)/bs))):
-            for hostName in a[i*bs:i*bs+bs]:
-####                sleep(0.5)
-                self.addHost( name=hostName,
-                        admin_ip=newAdminIp(admin_ip),
-                        loop=loop,
-                        master=masterSsh,
-    #                    target=host,
-                        username=username,
-                        bastion=bastion,
-                        client_keys=client_keys,
-                        waitStart=waitStart,
-                        **topo.nodeInfo( hostName ))
-                info( hostName + ' ' )
-            # XXX beurk
-####            time.sleep(0.5)
+        for hostName in topo.hosts():
+            _ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
+            self.adminNextIP += 1
+#            __ip= newAdminIp(admin_ip)
+            self.addHost( name=hostName,
+                    admin_ip= _ip,
+                    loop=loop,
+                    master=masterSsh,
+                    username=self.user,
+                    bastion=bastion,
+                    client_keys=self.client_keys,
+                    waitStart=waitStart,
+                    **topo.nodeInfo( hostName ))
+            info( hostName + ' ' )
 
         info( '\n*** Adding switches:\n' )
-
-        a = topo.switches()
-        for i  in range(int(math.ceil(len(a)/bs))):
-            for switchName in a[i*bs:i*bs+bs]:
-                sleep(.5)
-                self.addSwitch( name=switchName,
-                        admin_ip=newAdminIp(admin_ip),
-                        loop=loop,
-                        master=masterSsh,
-    #                    target=host,
-                        username=username,
-                        bastion=bastion,
-                        client_keys=client_keys,
-                        waitStart=waitStart,
-                        **topo.nodeInfo( switchName ))
-                info( switchName + ' ' )
-            # XXX beurk
-#####            time.sleep(0.5)
+        for switchName in topo.switches():
+            _ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
+            self.adminNextIP += 1
+            self.addSwitch( name=switchName,
+                    admin_ip=_ip,
+                    loop=loop,
+                    master=masterSsh,
+                    username=self.user,
+                    bastion=bastion,
+                    client_keys=self.client_keys,
+                    waitStart=waitStart,
+                    **topo.nodeInfo( switchName ))
+            info( switchName + ' ' )
 
 
-        a = self.hosts + self.switches
-
-        
         if not waitStart:
-            for i  in range(int(math.ceil(len(a)/bs))):
-                nodes = a[i*bs:i*bs+bs]
-                print (">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", nodes)
+            nodes = self.hosts + self.switches
 
-                print ("[starting")
-                for node in nodes:
-                    print ("connectTarget", node.name)
-                    node.connectTarget()
+            print ("[starting")
+            for node in nodes:
+                print ("connectTarget", node.name)
+                node.connectTarget()
 
-                for node in nodes:
-                    node.waitConnectedTarget()
-                    print ("connectedTarget", node.name)
+            for node in nodes:
+                node.waitConnectedTarget()
+                print ("connectedTarget", node.name)
 
-                for node in nodes:
-                    print ("createContainer", node.name)
-                    node.createContainer()
+            for node in nodes:
+                print ("createContainer", node.name)
+                node.createContainer()
 
-                for node in nodes:
-                    node.waitCreated()
-                    print ("createdContainer", node.name)
-               
-                for node in nodes:
-                    print ("create admin interface", node.name)
-                    node.addContainerInterface(intfName="admin", brname="admin-br", wait=False)
+            for node in nodes:
+                node.waitCreated()
+                print ("createdContainer", node.name)
+           
+            for node in nodes:
+                print ("create admin interface", node.name)
+                node.addContainerInterface(intfName="admin", brname="admin-br", wait=False)
 
-                for node in nodes:
-                    node.targetSsh.waitOutput()
-                    print ("admin interface created on", node.name)
+            for node in nodes:
+                node.targetSsh.waitOutput()
+                print ("admin interface created on", node.name)
 
-                cmds = []
-                for node in nodes:
-                    cmds = cmds + node.connectToAdminNetwork(master=node.master.host, target=node.target, link_id=CloudLink.newLinkId(), admin_br="admin-br", wait=False)
-                if len (cmds) > 0:
-                    cmd = ';'.join(cmds)
-                    masterSsh.cmd(cmd) 
+            cmds = []
+            for node in nodes:
+                cmds = cmds + node.connectToAdminNetwork(master=node.master.host, target=node.target, link_id=CloudLink.newLinkId(), admin_br="admin-br", wait=False)
+            if len (cmds) > 0:
+                cmd = ';'.join(cmds)
+                masterSsh.cmd(cmd) 
 
-                for node in nodes:
-                    node.configureContainer(wait=False)
-                for node in nodes:
-                    node.targetSsh.waitOutput()
+            for node in nodes:
+                node.configureContainer(wait=False)
+            for node in nodes:
+                node.targetSsh.waitOutput()
 
-                for node in nodes:
-                    print ("connecting", node.name)
-                    node.connect()
+            for node in nodes:
+                print ("connecting", node.name)
+                node.connect()
 
-                for node in nodes:
-                    node.waitConnected()
-                    print ("connected", node.name)
+            for node in nodes:
+                node.waitConnected()
+                print ("connected", node.name)
 
-                for node in nodes:
-                    print ("startshell", node.name)
-                    node.startShell(waitStart=False)
-                for node in nodes:
-                    node.waitStarted()
-                    print ("startedshell", node.name)
+            for node in nodes:
+                print ("startshell", node.name)
+                node.startShell(waitStart=False)
+            for node in nodes:
+                node.waitStarted()
+                print ("startedshell", node.name)
 
-                for node in nodes:
-                    print ("finalize", node.name)
-                    node.finalizeStartShell()
-
-                print ("#]")
-                print ("dodo")
-                time.sleep(1)
-                print ("Awake")
-
-        # == Switches ========================================================
-##        info( '\n*** Adding switches:\n' )
-##        for switchName in topo.switches():
-##            self.addSwitch( name=switchName,
-##                    admin_ip=newAdminIp(admin_ip),
-##                    loop=loop,
-##                    master=masterSsh,
-##                    target=host,
-##                    username=username,
-##                    bastion=bastion,
-##                    client_keys=client_keys,
-##                    waitStart=waitStart,
-##                    **topo.nodeInfo( switchName ))
-##            info( switchName + ' ' )
-####
-##        if not waitStart:
-##            print ("[starting")
-##            for node in self.switches:
-##                print ("connectTarget", node.name)
-##                node.connectTarget()
-##
-##            for node in self.switches:
-##                node.waitConnectedTarget()
-##                print ("connectedTarget", node.name)
-##
-##            for node in self.switches:
-##                print ("createContainer", node.name)
-##                node.createContainer()
-##
-##            for node in self.switches:
-##                node.waitCreated()
-##                print ("createdContainer", node.name)
-##            
-##            for node in self.switches:
-##                print ("connecting", node.name)
-##                node.connect()
-##
-##            for node in self.switches:
-##                node.waitConnected()
-##                print ("connected", node.name)
-##
-##            for node in self.switches:
-##                print ("startshell", node.name)
-##                node.startShell(waitStart=False)
-##            for node in self.switches:
-##                node.waitStarted()
-##                print ("startedshell", node.name)
-##
-##            for node in self.switches:
-##                print ("finalize", node.name)
-##                node.finalizeStartShell()
-##
-##            print ("#]")
-
-#        import time
-#        time.sleep(30)
+            for node in nodes:
+                print ("finalize", node.name)
+                node.finalizeStartShell()
 
         info( '\n*** Adding links:\n' )
         for srcName, dstName, params in topo.links(

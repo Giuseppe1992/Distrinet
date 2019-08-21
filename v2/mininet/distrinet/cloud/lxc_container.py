@@ -86,7 +86,7 @@ class LxcNode (Node):
     def __init__(self, name, loop,
                        admin_ip,
                        master,
-                       target=None, port=22, username=None,
+                       target=None, port=22, username=None, pub_id=None,
                        bastion=None, bastion_port=22, client_keys=None,
                        waitStart=True,
                        **params):
@@ -133,6 +133,7 @@ class LxcNode (Node):
         self.target = target
         self.port = port
         self.username = username
+        self.pub_id = pub_id
         self.client_keys = client_keys
 
         # ssh bastion information
@@ -204,7 +205,10 @@ class LxcNode (Node):
             assert (False)
             self.targetSsh = ASsh(loop=self.loop, host=self.master.host, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
         # SSH with the node
-        self.ssh = ASsh(loop=self.loop, host=self.admin_ip, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
+        admin_ip = self.admin_ip
+        if "/" in admin_ip:
+                admin_ip, prefix = admin_ip.split("/")
+        self.ssh = ASsh(loop=self.loop, host=admin_ip, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
 
         if waitStart:
             print ("#[")
@@ -262,8 +266,7 @@ class LxcNode (Node):
         #       an admin IP address
         cmds.append("lxc exec {} -- ifconfig admin {}".format(self.name, self.admin_ip))
         #       a public key
-        pub_id = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDgEnskmrOMpOht9KZV2rIYYLKkw4BSd8jw4t9cJKclE9BEFyPFr4H4O0KR85BP64dXQgAYumHv9ufnNe1jntLhilFql2uXmLcaJv5nDFdn7YEd01GUN2QUkNy6yguTO8QGmqnpKYxYiKz3b8mWDWY2vXaPvtHksaGJu2BFranA3dEuCFsVEP4U295z6LfG3K0vr+M0xawhJ8GRUnX+EyjK5rCOn0Nc04CmSVjIpNazyXyni4cW4q8FUADtxoi99w9fVIlFcdMAgoS65FxAxOF11bM6EzbJczdN4d9IjS4NPBqcWjwCH14ZWUAXvv3t090tUQOLGdDOih+hhPjHTAZt root@7349f78b2047"
-        cmds.append("lxc exec {} -- bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, pub_id))
+        cmds.append("lxc exec {} -- bash -c 'echo \"{}\" >> /root/.ssh/authorized_keys'".format(self.name, self.pub_id))
         #       a ssh server
         cmds.append("lxc exec {} -- service ssh start".format(self.name))
 
@@ -1157,137 +1160,3 @@ class LxcNode (Node):
             await asyncio.sleep(1)
     # =========================================================================
 
-###############
-
-def runforever(loop):
-    time.sleep(0.001)       ### DSA - WTF ?????????????
-    loop.run_forever()
-
-
-
-def main():
-    loop = asyncio.get_event_loop()
-
-    thread = Thread(target=runforever, args=(loop,))
-    thread.start()
-
-
-
-
-    host = 'srv-diana'
-    bastion = 'ssh-sop.inria.fr'
-    username = 'dsaucez'
-
-    host = 'ip-10-0-0-70'
-    host2 = 'ip-10-0-1-193'
-    bastion = 'ec2-15-188-18-162.eu-west-3.compute.amazonaws.com'
-    username = 'root'
-
-    client_keys=["/root/.ssh/id_rsa"]
-
-#    ssh = ASsh(loop=loop, host=host, username=username, bastion=bastion, client_keys=["/root/.ssh/id_rsa"])
-#    ssh.createTunnel()
-#    ssh.waitTunneled()
-#
-#    print ("tunneled")
-#    ssh.connect()
-#    print ("Done")
-#    ssh.waitConnected()
-#    print (ssh.cmd("ls").rstrip())
-#    print ()
-#    ssh.sendCmd("rm XXX")
-#    ssh.waitOutput()
-#    print ()
-#    print (ssh.cmd("ls").rstrip())
-#    print ("really")
-#    exit()
-
-
-    # prepare SSH connection to the master
-    masterSsh = ASsh(loop=loop, host=host, username=username, bastion=bastion, client_keys=client_keys)
-    masterSsh.connect()
-    masterSsh.waitConnected()
-    print ("connected to master node")
-
-    waitStart = False
-    n = 3
-    start = time.time()
-    ip = 10
-    nodes = []
-
-    hosts = [host, host2, host2]
-    for i in range(n):
-        print (i)
-        node = ANode(name="n{}".format(i), loop=loop,
-                master=masterSsh,
-                target=hosts[i],
-                admin_ip = "192.168.42.{}".format(ip+i),
-                username=username,
-                bastion=bastion,
-                client_keys=client_keys, waitStart=waitStart)
-        nodes.append(node)
-##        time.sleep(0.050)
-
-    if not waitStart:
-        for node in nodes:
-            print ("creating container on", node)
-            node.createContainer()
-
-        for node in nodes:
-            print ("connecting node", node)
-            node.connect()
-
-        for node in nodes:
-            print ("waiting for connection on", node)
-            node.waitConnected()
-
-        for node in nodes:
-            print ("starting shell on", node)
-            node.startShell(waitStart=False)
-
-        for node in nodes:
-            print ("waiting for shell on", node)
-            node.waitStarted()
-
-        for node in nodes:
-            print ("Finalize shell on", node)
-            node.finalizeStartShell()
-
-    print ("{} shells in".format(n), time.time() - start)
-
-#    start = time.time() 
-#    tasks = []
-#    for node in nodes:
-#        task = node.targetCmd("lxc launch ubuntu {}".format(node.name))
-#        tasks.append(task)
-#
-#    for task in tasks:
-#        while not task.done():
-#            time.sleep(0.001)
-#    print ("{} containers launched in".format(n), time.time() - start)
-#
-#    start = time.time() 
-#    tasks = []
-#    for node in nodes:
-#        task = node.targetCmd("lxc delete {} --force".format(node.name))
-#        tasks.append(task)
-#
-#    for task in tasks:
-#        while not task.done():
-#            time.sleep(0.001)
-#    print ("{} containers deleted in".format(n), time.time() - start)
-#
-
-
-    while True:
-        cmd = input("{} ({})# ".format(node, node.target))
-        if cmd == "exit":
-            for node in nodes:
-                node.stop()
-            loop.stop()
-            exit()
-        print (node.cmd(cmd).rstrip())
-
-
-if __name__ == '__main__':
-    main()

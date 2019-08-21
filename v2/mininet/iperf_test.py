@@ -130,6 +130,7 @@ if __name__ == "__main__":
     autoPinCpus=False
     listenPort=6654
     user="root"
+    client_keys=["/root/.ssh/id_rsa"]
     build=False
 
     # mapper
@@ -170,11 +171,6 @@ if __name__ == "__main__":
 
     print ("mapping:", mapper.places)
 
-    # DSA - TODO - not really nice, need to clean that
-    from distrinet.cloud.sshutil import name2IP
-    name2IP.eyeball=master
-    name2IP.user=user
-
     print ("JUMP!",jump)
     mn = Distrinet(
             topo=topo,
@@ -183,9 +179,12 @@ if __name__ == "__main__":
             ipBase=ipBase, inNamespace=inNamespace,
             xterms=xterms, autoSetMacs=autoSetMacs,
             autoStaticArp=autoSetMacs, autoPinCpus=autoPinCpus,
-            listenPort=listenPort, build=build, jump=jump, master=master, mapper=mapper, user=user, waitConnected=waitConnected)
+            listenPort=listenPort, build=build, jump=jump, master=master, mapper=mapper,
+            user=user,
+            client_keys=client_keys,
+            waitConnected=waitConnected)
 
-    mn.addController(name='c0', controller=LxcRemoteController, ip="192.168.42.1", port=6633 )
+    mn.addController(name='c0', controller=LxcRemoteController, ip="192.168.0.1", port=6633 )
 
     mn.build()
     print (dir (mn))
@@ -195,8 +194,8 @@ if __name__ == "__main__":
     elapsed = float( time.time() - start )
     print ( 'completed in %0.3f seconds\n' % elapsed )
 
-    print ("Wait 60s for LLDP and STP to do their magic")
-    sleep(60)
+    print ("Wait 10s for LLDP and STP to do their magic")
+    sleep(10)
     
     print ("# populate /etc/hosts")
     makeHosts(topo=topo, net=mn)
@@ -211,8 +210,8 @@ if __name__ == "__main__":
     srcLink = links[0][0]
     dstLink = links[0][1]
 
-    srcLink.config(**{ 'bw' : 100})
-    dstLink.config(**{ 'bw' : 100})
+    srcLink.config(**{ 'bw' : 1000})
+    dstLink.config(**{ 'bw' : 1000})
     from mininet.cli import CLI
     CLI(mn)
 
