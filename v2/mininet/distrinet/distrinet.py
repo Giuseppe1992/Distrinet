@@ -114,6 +114,11 @@ from mininet.link import (Intf, TCIntf)
 from distrinet.cloud.lxc_container import (LxcNode)
 from distrinet.cloud.cloudswitch import (LxcSwitch)
 from distrinet.cloud.cloudcontroller import (LxcRemoteController)
+
+
+import asyncio
+import time
+from threading import Thread
 ##############################
 
 # Mininet version: should be consistent with README and LICENSE
@@ -209,6 +214,16 @@ class Distrinet( Mininet ):
         self.user = user
         self.client_keys = client_keys
         self.master = master
+
+        self.loop = asyncio.get_event_loop()
+
+        def runforever(loop):
+            time.sleep(0.001)       ### DSA - WTF ?????????????
+            loop.run_forever()
+
+        self.thread = Thread(target=runforever, args=(self.loop,))
+        self.thread.start()
+
 
         self.nameToNode = {}  # name to Node (Host/Switch) objects
 
@@ -525,30 +540,16 @@ class Distrinet( Mininet ):
                 else:
                     self.addController( 'c%d' % i, cls )
 
-        import asyncio
-        from threading import Thread
-        import time
-
-        from assh import ASsh
-
-        def runforever(loop):
-            time.sleep(0.001)       ### DSA - WTF ?????????????
-            loop.run_forever()
-
-        self.loop = asyncio.get_event_loop()
-        loop=self.loop
-
-        self.thread = Thread(target=runforever, args=(loop,))
-        self.thread.start()
 
         bastion = self.jump
         waitStart = False
 
+        from assh import ASsh
         # prepare SSH connection to the master
         from distrinet.cloud.assh import ASsh
 
         info( '*** Adding hosts:\n' )
-        masterSsh = ASsh(loop=loop, host=self.master, username=self.user, bastion=bastion, client_keys=self.client_keys)
+        masterSsh = ASsh(loop=self.loop, host=self.master, username=self.user, bastion=bastion, client_keys=self.client_keys)
         masterSsh.connect()
         masterSsh.waitConnected()
         print ("connected to master node")
@@ -565,7 +566,7 @@ class Distrinet( Mininet ):
 #            __ip= newAdminIp(admin_ip)
             self.addHost( name=hostName,
                     admin_ip= _ip,
-                    loop=loop,
+                    loop=self.loop,
                     master=masterSsh,
                     username=self.user,
                     bastion=bastion,
@@ -580,7 +581,7 @@ class Distrinet( Mininet ):
             self.adminNextIP += 1
             self.addSwitch( name=switchName,
                     admin_ip=_ip,
-                    loop=loop,
+                    loop=self.loop,
                     master=masterSsh,
                     username=self.user,
                     bastion=bastion,

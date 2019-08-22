@@ -59,7 +59,6 @@ if __name__ == "__main__":
         print ("# Already deployed")
         assert options.master, "must provide a master when a jump is provided"
         assert options.cluster, "must provide a cluster when a jump is provided"
-        deploy = False
         jump = options.jump
         master= options.master
         cluster = options.cluster.split(",")
@@ -74,7 +73,7 @@ if __name__ == "__main__":
                          bastionHostDescription={"numberOfInstances": 1, 'instanceType': 't3.2xlarge', 'KeyName': 'pub_dsaucez',
                                                  'ImageId': 'ami-03bca18cb3dc173c9',
                                                  "BlockDeviceMappings":[{"DeviceName": "/dev/sda1","Ebs" : { "VolumeSize" : 50 }}]},
-                         workersHostsDescription=[{"numberOfInstances": 1, 'instanceType': 't3.2xlarge',
+                         workersHostsDescription=[{"numberOfInstances": 4, 'instanceType': 't3.2xlarge',
                                                    'ImageId': 'ami-03bca18cb3dc173c9',
                                                    "BlockDeviceMappings":[{"DeviceName": "/dev/sda1","Ebs" : { "VolumeSize" : 50 }}]}
                                                   ])
@@ -147,6 +146,11 @@ if __name__ == "__main__":
             client_keys=client_keys,
             waitConnected=waitConnected)
 
+    from distrinet.cloud.assh import ASsh
+    masterSsh = ASsh(loop=mn.loop, host=master, username=user, bastion=jump, client_keys=client_keys)
+    masterSsh.connect()
+    masterSsh.waitConnected()
+    masterSsh.cmd("nohup /usr/bin/ryu-manager --verbose /usr/lib/python2.7/dist-packages/ryu/app/simple_switch_13.py >& controller.dat &")
     mn.addController(name='c0', controller=LxcRemoteController, ip="192.168.0.1", port=6633 )
 
     mn.build()
