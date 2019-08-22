@@ -165,6 +165,10 @@ class LxcNode (Node):
         self.memory = params.get("memory", None)
         self.cpu = params.get("cpu", None)
 
+        # network devices created on the target
+        self.devices = []
+        self.devicesMaster = []
+
         ## == mininet =========================================================
         # Make sure class actually works
         self.checkSetup()
@@ -316,6 +320,8 @@ class LxcNode (Node):
         link = params["link"]
         self.containerLinks[link] = vxlan_name
 
+        self.devices.append(vxlan_name)
+
     def deleteContainerLink(self, link, **kwargs):
         self.targetSsh.cmd("ip link delete {}".format(self.containerLinks[link]))
 
@@ -338,6 +344,10 @@ class LxcNode (Node):
             cmds.append('brctl addif {} {}'.format(bridge1, vxlan_name))
             cmds.append('ip link set up {}'.format(bridge1))
 
+
+            self.devices.append(vxlan_name)
+            self.devices.append(bridge1)
+
         else:
             if bridge1 != bridge2:
                 'the containers are in different bridge, we need to create 2 virtual interface to attach the two bridges'
@@ -348,6 +358,12 @@ class LxcNode (Node):
                 cmds.append('brctl addif {} {}'.format(bridge2, v_if2))
                 cmds.append('ip link set up {}'.format(v_if1))
                 cmds.append('ip link set up {}'.format(v_if2))
+
+
+                self.devices.append(v_if1)
+                self.devices.append(v_if2)
+                self.devices.append(bridge1)
+                self.devices.append(bridge2)
         return cmds 
 
     def connectToAdminNetwork(self, master, target, link_id, admin_br, wait=True, **params):
@@ -357,7 +373,7 @@ class LxcNode (Node):
 
             # no need to connect admin on the same machine or if it is already connected
             vxlan_name = "vx_{}".format(link_id)
-            
+
             # locally
             # DSA - TODO - XXX beurk bridge2 = None
             cmds = self.createContainerLinkCommandList(target, master, link_id, vxlan_name, bridge1=admin_br, bridge2=None)
@@ -373,11 +389,13 @@ class LxcNode (Node):
             # DSA - TODO - XXX beurk bridge2 = None
             cmds = self.createContainerLinkCommandList(master, target, link_id, vxlan_name, bridge1=admin_br, bridge2=None)
             cmd = ';'.join(cmds)
+            self.devicesMaster.append(vxlan_name)
 
-            print ("master",cmd)
-            if wait:
-                self.master.cmd(cmd)
-                cmds = []
+            self.devices.append(vxlan_name)
+#            print ("master".format(vxlan_name),cmd)
+#            if wait:
+#                self.master.cmd(cmd)
+#                cmds = []
         return cmds
 
 
@@ -446,7 +464,6 @@ class LxcNode (Node):
 
     def deleteContainerInterface(self, intf, **kwargs):
         if intf.name in self.containerInterfaces:
-            print ("delete interface {} on {}".format(intf, self.name))
             self.targetSsh.cmd("ip link delete {}".format(self.containerInterfaces[intf.name]))
 
 # ======================================??????????????????????????>
@@ -607,6 +624,7 @@ class LxcNode (Node):
         self.conn = None                                                                                                       
         self.run = False
         self.shell = None
+        self.devices = None
 
     # Subshell I/O, commands and control
 
@@ -645,6 +663,10 @@ class LxcNode (Node):
 
         # destroy the container
         self.targetSsh.cmd("lxc delete {} --force".format(self.name))
+
+        # remove all locally made devices
+        for device in self.devices:
+            self.targetSsh.cmd("ip link delete {}".format(device))
 
         # close the SSH connection
         self.ssh.close()
@@ -1076,7 +1098,6 @@ class LxcNode (Node):
         pass
 
     ##############################
-# ICI
 
     # == New methods ==========================================================
     def finalizeStartShell(self):

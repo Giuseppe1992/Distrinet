@@ -24,7 +24,6 @@ class LxcSwitch( LxcNode ):
            opts: additional switch options
            listenPort: port to listen on for dpctl connections"""
         super(LxcSwitch, self).__init__(name=name, **params )
-        print (">>>>>>>>>>>>>>>>>>>>>>>>>>>>ICI", name)
         self.dpid = self.defaultDpid( dpid )
         self.opts = opts
         self.listenPort = listenPort

@@ -140,15 +140,6 @@ class Distrinet( Mininet ):
                   listenPort=None, waitConnected=False, waitConnectionTimeout=5, 
                   jump=None, user="root", client_keys=None, master=None,
                   **kwargs):
-#####        params = {}
-#####        params.update( kwargs )
-#####        Mininet.__init__( self, *args, **params )
-#    def __init__( self, topo=None, switch=OVSKernelSwitch, host=Host,
-#                  controller=DefaultController, link=Link, intf=Intf,
-#                  build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
-#                  inNamespace=False,
-#                  autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
-#                  listenPort=None, waitConnected=False ):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -549,7 +540,8 @@ class Distrinet( Mininet ):
         from distrinet.cloud.assh import ASsh
 
         info( '*** Adding hosts:\n' )
-        masterSsh = ASsh(loop=self.loop, host=self.master, username=self.user, bastion=bastion, client_keys=self.client_keys)
+        self.masterSsh = ASsh(loop=self.loop, host=self.master, username=self.user, bastion=bastion, client_keys=self.client_keys)
+        masterSsh = self.masterSsh
         masterSsh.connect()
         masterSsh.waitConnected()
         print ("connected to master node")
@@ -791,6 +783,11 @@ class Distrinet( Mininet ):
         for host in self.hosts:
             info( host.name + ' ' )
             host.terminate()
+        info( '*** cleaning master\n' )
+        # XXX DSA need to find something nicer
+        for node in self.hosts + self.switches:
+            for device in node.devicesMaster:
+                self.masterSsh.cmd("ip link delete {}".format(device))
         info( '\n*** Done\n' )
 
     def run( self, test, *args, **kwargs ):
