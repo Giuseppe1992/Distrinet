@@ -120,13 +120,23 @@ if __name__ == "__main__":
         places["s2"] = cluster[1]
         return places
 
+    def _rounRobin(topo, cluster):
+        i = 0
+        places = {}
+        nodes = topo.hosts() + topo.switches()
+        for node in nodes:
+            places[node] = cluster[i%len(cluster)]
+            i = i + 1
+        return places
 
     print ("# compute mapping")
     from distrinet.dummymapper import DummyMapper
     if options.single:
         places = _singleMachine(topo, cluster)
     else:
-        places = _twoMachines(topo, cluster)
+#        places = _twoMachines(topo, cluster)
+        places = _rounRobin(topo, cluster)
+
     mapper = DummyMapper(places=places)
 
     print ("mapping:", mapper.places)

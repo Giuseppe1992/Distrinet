@@ -783,10 +783,14 @@ class Distrinet( Mininet ):
         for host in self.hosts:
             info( host.name + ' ' )
             host.terminate()
+        
         info( '*** cleaning master\n' )
         # XXX DSA need to find something nicer
         for node in self.hosts + self.switches:
+            print ("wait ", node)
+            node.targetSsh.waitOutput()
             for device in node.devicesMaster:
+                print ("delete device {} on master".format(device))
                 self.masterSsh.cmd("ip link delete {}".format(device))
         info( '\n*** Done\n' )
 

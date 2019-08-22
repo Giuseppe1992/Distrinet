@@ -661,12 +661,18 @@ class LxcNode (Node):
         "Send kill signal to Node and clean up after it."
         self.unmountPrivateDirs()
 
+        cmds = []
         # destroy the container
-        self.targetSsh.cmd("lxc delete {} --force".format(self.name))
+        cmds.append("lxc delete {} --force".format(self.name))
+#        self.targetSsh.cmd("lxc delete {} --force".format(self.name))
 
         # remove all locally made devices
         for device in self.devices:
-            self.targetSsh.cmd("ip link delete {}".format(device))
+            cmds.append("ip link delete {}".format(device))
+#            self.targetSsh.cmd("ip link delete {}".format(device))
+
+        cmd = ";".join(cmds)
+        self.targetSsh.sendCmd(cmd)
 
         # close the SSH connection
         self.ssh.close()
