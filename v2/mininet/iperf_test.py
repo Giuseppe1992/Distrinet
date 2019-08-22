@@ -17,31 +17,7 @@ from distrinet.cloud.cloudswitch import (LxcOVSSwitch)
 from distrinet.cloud.cloudlink import (CloudLink)
 from distrinet.distrinet import (Distrinet)
 
-
-def makeFile(net, host, lines, filename, overwrite=True):
-    ln = 1
-    for line in lines:
-        command = 'echo %s' % (line)
-        if overwrite and ln == 1:
-            command = "%s > %s" % (command, filename)
-        else:
-            command = "%s >> %s"% (command, filename)
-
-        net.nameToNode[host].cmd('bash -c "{}"'.format(command))
-        ln = ln + 1
-
-def makeHosts(topo, net):
-    lines = []
-    for host in topo.hosts():
-        lines.append("{} {}".format(net.nameToNode[host].IP(), host))
-    print (" >>> {}".format(lines))
-    for host in topo.hosts():
-        print ("\t Adding to host {}".format(lines))
-        makeFile(net=net, host=host, lines=lines, filename="/etc/hosts", overwrite=False)
-
-def ip2name(ip):
-    return "ip-" + ip.replace(".", "-")
-
+from util import makeFile, makeHosts
 
 from optparse import OptionParser
 """
@@ -106,20 +82,11 @@ if __name__ == "__main__":
         jump, master, workerHostsPrivateIp = o.deploy()
         cluster = [master] + workerHostsPrivateIp
 
-        master = ip2name(master)
-        cname = []
-        for n in cluster:
-            cname.append(ip2name(n))
-        cluster = cname
-
         print ("# sleep 60s to wait for LXD to do its magic")
         sleep(60)
     print ("jump:", jump, "mastername:", master, "clustername:", cluster)
 
-#    jump="35.181.129.103"
-#    master="ip-10-0-0-239"
-#    cluster = ['ip-10-0-0-239', 'ip-10-0-1-13']
-
+    adminIpBase='192.168.0.1/8'
     ipBase='10.0.0.0/8'
     inNamespace=False
     xterms=False
@@ -133,12 +100,6 @@ if __name__ == "__main__":
     client_keys=["/root/.ssh/id_rsa"]
     build=False
 
-    # mapper
-#    from distrinet.dummymapper import RoundRobbinMapper
-#    mapper = RoundRobbinMapper(physical=cluster)
-#    print ("targets:", mapper.physical)
-#    print ("\t\t", mapper.place(1))
-    
     def _singleMachine(topo, cluster):
         places = {}
         hosts = topo.hosts()
@@ -176,7 +137,9 @@ if __name__ == "__main__":
             topo=topo,
             switch=switch, host=host, #controller=controller,
             link=link,
-            ipBase=ipBase, inNamespace=inNamespace,
+            ipBase=ipBase,
+            adminIpBase=adminIpBase,
+            inNamespace=inNamespace,
             xterms=xterms, autoSetMacs=autoSetMacs,
             autoStaticArp=autoSetMacs, autoPinCpus=autoPinCpus,
             listenPort=listenPort, build=build, jump=jump, master=master, mapper=mapper,
@@ -198,7 +161,9 @@ if __name__ == "__main__":
     sleep(10)
     
     print ("# populate /etc/hosts")
-    makeHosts(topo=topo, net=mn)
+    makeHosts(topo=topo, net=mn, wait=False)
+    for host in mn.hosts:
+        host.waitOutput()
 
 
     print ("# configure bottleneck link to 1Gbps")
@@ -212,32 +177,50 @@ if __name__ == "__main__":
 
     srcLink.config(**{ 'bw' : 1000})
     dstLink.config(**{ 'bw' : 1000})
-    from mininet.cli import CLI
-    CLI(mn)
 
+#    from mininet.cli import CLI
+#    CLI(mn)
+
+
+    # iperf servers
     print ("# start iperf -s")
     for h in mn.hosts:
         print ("#   on {}".format(h))
         h.cmd("nohup iperf -s &")
 
+    # iperf clients
     l = len(mn.hosts)
     half = int(l/2)
     print ("# measure bandwidth")
-    for i in range(half):
+    for i in range(half-1):
         print ("#   between {} and {}".format(mn.hosts[i], mn.hosts[-i-1]))
-        t = 300
-        if i == half - 1:
-            time.sleep(10)
-            t = 60
+        t = 60
         mn.hosts[i].sendCmd("iperf -t {} -c {}".format(t, mn.hosts[-i-1]) )
 
-    print ("# wait for results on {}".format(mn.hosts[half - 1]))
-    print (mn.hosts[half -1].waitOutput())
-    for i in range(half):
+
+    def _parseIperf( iperfOutput ):
+        import re
+        """Parse iperf output and return bandwidth.
+           iperfOutput: string
+           returns: result string"""
+        r = r'([\d\.]+ \w+/sec)'
+        m = re.findall( r, iperfOutput )
+        if m:
+            return m[-1]
+        else:
+            # was: raise Exception(...)
+            error( 'could not parse iperf output: ' + iperfOutput )
+            return ''
+
+    print ("# real test between {} and {}".format(mn.hosts[half-1], mn.hosts[-(half-1)-1]))
+    time.sleep(10)
+    iperfOutput = mn.hosts[half-1].cmd("iperf -t {} -c {}".format(10, mn.hosts[-(half-1)-1]) )
+    print (_parseIperf(iperfOutput))
+
+    for i in range(half-1):
+        print ("# waiting for background traffic to stop (may take up to {}s)".format(t))
         mn.hosts[i].waitOutput()
 
-
-
-
-    input("press a key to clean stop")
+    print ("# stopping the experiment")
     mn.stop()
+    mn.loop.stop()
