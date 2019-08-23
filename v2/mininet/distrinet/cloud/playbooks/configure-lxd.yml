@@ -1,0 +1,67 @@
+---
+
+- hosts      : master
+  remote_user: root
+  vars       :
+    master_ip: "{{ master_ip }}"
+  tasks      :
+    - name  : master lxd configuration
+      expect:
+        echo     : yes
+        command  : lxd init
+        timeout  : 20
+        responses:
+          (?i)Would you like to use LXD clustering?                                       : "yes"
+          (?i)What name should be used to identify this node in the cluster?              : ""
+          (?i)What IP address or DNS name should be used to reach this node?              : ""
+          (?i)Are you joining an existing cluster?                                        : "no"
+          (?i)Setup password authentication on the cluster?                               : "yes"
+          (?i)Trust password for new clients                                              : "s3cr3t"
+          (?i)Again                                                                       : "s3cr3t"
+          (?i)Do you want to configure a new local storage pool?                          : "yes"
+          (?i)Do you want to configure a new remote storage pool?                         : "no"
+          (?i)Name of the storage backend to use                                          : "dir"
+          (?i)Would you like to connect to a MAAS server?                                 : "no"
+          (?i)Would you like to configure LXD to use an existing bridge or host interface?: "no"
+          (?i)Would you like to create a new Fan overlay network?                         : "no"
+          (?i)Would you like stale cached images to be updated automatically?             : "yes"
+          (?i)Would you like a YAML                                                       : "no"
+
+
+- hosts      : workers
+  remote_user: root
+  vars       :
+    master_ip: "{{ master_ip }}"
+  tasks      :
+    - name  : slaves lxd configuration
+      expect:
+        echo     : yes
+        command  : lxd init
+        timeout  : 20
+        responses:
+          (?i)Would you like to use LXD clustering?                         : "yes"
+          (?i)What name should be used to identify this node in the cluster?: ""
+          (?i)What IP address or DNS name should be used to reach this node?: ""
+          (?i)Are you joining an existing cluster?                          : "yes"
+          (?i)IP address or FQDN of an existing cluster node                : "{{ master_ip }}"
+          (?i)Is this the correct fingerprint                               : "yes"
+          (?i)Setup password authentication on the cluster?                 : "yes"
+          (?i)Cluster trust password                                        : "s3cr3t"
+          (?i)All existing data is lost when joining a cluster              : "yes"
+          (?i)Choose the local disk or dataset for storage pool             : ""
+          (?i)Would you like a YAML                                         : "no"
+
+- hosts      : master
+  remote_user: root
+  vars       :
+    master_ip: "{{ master_ip }}"
+  tasks      :
+    - name   : create switch image
+      command: lxc image import ~/switch.tar.gz --alias switch --public
+      #
+    - name   : create ubuntu18.04 image -- alias ubuntu
+      command: lxc image import ~/ubuntu.tar.gz --alias ubuntu --public
+      #
+
+
+
