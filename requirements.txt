@@ -16,5 +16,6 @@ asyncssh==1.17.1
 asyncio==3.4.3
 pytest==5.1.0
 PyYAML==5.1.2
+awscli==1.16.224
 git+git://github.com/mininet/mininet.git
 #git+https://github.com/Giuseppe1992/mapping_distrinet.git

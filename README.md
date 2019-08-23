@@ -171,7 +171,33 @@ export PYTHONPATH=$PYTHONPATH:/root/mininet:/root/Distrinet/v2/mininet/distrinet
 You are ready to run your first experiment.
 
 #### Option 2: Docker image
-TO BE DONE
+You need docker installed in your system.
+docker build -t distrinet:1.1 .
+* Clone the repository
+
+```
+git clone https://github.com/Giuseppe1992/Distrinet.git
+```
+
+* Move inside Distrinet directory and run(it can take a while)
+```
+docker build -t distrinet:1.1 .
+```
+
+* Then you can create you container
+```
+docker run --name distrinet -itd distrinet:1.1
+```
+* If everything is good you should see a docker container named "distrinet". You can attach to it with:
+```
+docker attach distrinet
+```
+
+* now you need to create an aws_access_key_id and an aws_secret_access_key via
+ [AWS Web interface](https://aws.amazon.com/) as explained before.
+ Finally inserit the aws_access_key_id aws_secret_access_key in ~/.aws/credentials.
+ Congratulation you are ready for the emulation :-)
+
 
 ### Example
 
