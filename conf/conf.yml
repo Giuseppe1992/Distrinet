@@ -3,6 +3,8 @@
 - environment: "aws"
   region: "eu-central-1"
   user: "ubuntu"
+  image_name: "ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-20190722.1"
+
   network_acl:
     - IpProtocol: "-1"
       FromPort: 1

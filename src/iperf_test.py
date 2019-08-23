@@ -71,10 +71,8 @@ if __name__ == "__main__":
         o = distrinetAWS(VPCName=vpcname, addressPoolVPC="10.0.0.0/16", publicSubnetNetwork='10.0.0.0/24',
                          privateSubnetNetwork='10.0.1.0/24',
                          bastionHostDescription={"numberOfInstances": 1, 'instanceType': 't3.2xlarge', 'KeyName': 'id_rsa',
-                                                 'ImageId': 'ami-0ac05733838eabc06',
                                                  "BlockDeviceMappings":[{"DeviceName": "/dev/sda1","Ebs" : { "VolumeSize" : 50 }}]},
                          workersHostsDescription=[{"numberOfInstances": 4, 'instanceType': 't3.2xlarge',
-                                                   'ImageId': 'ami-0ac05733838eabc06',
                                                    "BlockDeviceMappings":[{"DeviceName": "/dev/sda1","Ebs" : { "VolumeSize" : 50 }}]}
                                                   ])
         print(o.ec2Client)

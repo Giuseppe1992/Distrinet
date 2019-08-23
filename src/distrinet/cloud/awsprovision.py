@@ -10,6 +10,7 @@ DST_PLAYBOOKS_DIR = "/root/playbooks"
 MAIN_USER = "ubuntu"
 KEY_PAIR_NAME = 'DistrinetKey'
 IP_PERMISSION = [{'IpProtocol': "-1", 'FromPort': 1, 'ToPort': 65353, 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]}]
+IMAGE_NAME_AWS= "ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-20190722.1"
 
 # AWS_REGION = 'eu-west-3'
 # SRC_PLAYBOOKS_DIR = "/root/distrinet2/distrinet/src/playbooks"
@@ -50,6 +51,27 @@ class distrinetAWS(Provision):
         vpc.create_tags(Tags=[{"Key": "Name", "Value": VpcName}])
         vpc.wait_until_available()
         return vpc
+
+    @staticmethod
+    def getImageAMIFromRegion(Region, ImageName):
+        """
+        Return the imageId (ami-xxxxxxxx) for a given ImageName and a given region. Note that an imageId is different
+        for the same image in a different region.
+        :param Region: regione name ex. eu-central-1 or us-west-1 etc.
+        :param ImageName: image Name provided by in the amazon description,
+                ex. ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-20190722.1 for Ubuntu bionic
+        :return:  string containing the ImageId
+        """
+        images_response_with_filter = distrinetAWS.ec2Client.describe_images(ExecutableUsers=["all"],
+                                                                             Filters=[{"Name": "name",
+                                                                                       "Values": [ImageName]}])
+
+        Images = images_response_with_filter["Images"]
+        if len(Images) == 0:
+            raise RuntimeError(f"Image with Name: {ImageName} not found in region:{Region}")
+        image_description = Images[0]
+        imageId = image_description["ImageId"]
+        return imageId
 
     @staticmethod
     def modifyEnableDnsSupport(VpcId, Value=True):
@@ -408,6 +430,8 @@ class distrinetAWS(Provision):
         self.natGateWay = self.createNatGateWay(SubnetId=publicSubnetId, AllocationId=natGateWayPublicIpId)
         natGateWayId = self.natGateWay["NatGateway"]["NatGatewayId"]
 
+        image_ami = self.getImageAMIFromRegion(Region=AWS_REGION,ImageName=IMAGE_NAME_AWS)
+        self.bastionHostDescription["ImageId"] = image_ami
         self.bastionHost = self.runInstances(SubnetId=publicSubnetId, **self.bastionHostDescription)
         print(self.bastionHost)
         bastionHostId = self.bastionHost['Instances'][0]['InstanceId']
@@ -415,6 +439,7 @@ class distrinetAWS(Provision):
         self.workerHosts = []
         workerHostsId = []
         for workerDescription in self.workersHostsDescription:
+            workerDescription["ImageId"] = image_ami
             response = self.runInstances(SubnetId=privateSubnetId, KeyName=KEY_PAIR_NAME, **workerDescription)
             self.workerHosts.append(response)
             for instance in response['Instances']:
@@ -463,12 +488,11 @@ if __name__ == '__main__':
     o = distrinetAWS(VPCName="DEMO", addressPoolVPC="10.0.0.0/16", publicSubnetNetwork='10.0.0.0/24',
                      privateSubnetNetwork='10.0.1.0/24',
                      bastionHostDescription={"numberOfInstances": 1, 'instanceType': 't3.2xlarge',
-                                             'KeyName': 'id_rsa',
-                                             'ImageId': 'ami-090f10efc254eaf55', "BlockDeviceMappings": [
+                                             'KeyName': 'id_rsa', "BlockDeviceMappings": [
                              {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 8}}]},
                      workersHostsDescription=[{"numberOfInstances": 1, 'instanceType': 't3.2xlarge',
-                                               'ImageId': 'ami-090f10efc254eaf55', "BlockDeviceMappings": [
-                             {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 8}}]}
+                                               "BlockDeviceMappings": [
+                                                   {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 8}}]}
                                               ])
     print(o.ec2Client)
     start = time()
