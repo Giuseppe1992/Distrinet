@@ -4,7 +4,7 @@ decorator==4.3.0
 idna==2.7
 ipaddress==1.0.22
 networkx==2.2
-pip==18.0
+pip>=18.0
 requests==2.20.0
 urllib3==1.24.2
 wheel==0.32.0

@@ -70,11 +70,11 @@ if __name__ == "__main__":
         vpcname = "demo_{}".format(int(time.time()))
         o = distrinetAWS(VPCName=vpcname, addressPoolVPC="10.0.0.0/16", publicSubnetNetwork='10.0.0.0/24',
                          privateSubnetNetwork='10.0.1.0/24',
-                         bastionHostDescription={"numberOfInstances": 1, 'instanceType': 't3.2xlarge', 'KeyName': 'pub_dsaucez',
-                                                 'ImageId': 'ami-03bca18cb3dc173c9',
+                         bastionHostDescription={"numberOfInstances": 1, 'instanceType': 't3.2xlarge', 'KeyName': 'id_rsa',
+                                                 'ImageId': 'ami-0ac05733838eabc06',
                                                  "BlockDeviceMappings":[{"DeviceName": "/dev/sda1","Ebs" : { "VolumeSize" : 50 }}]},
                          workersHostsDescription=[{"numberOfInstances": 4, 'instanceType': 't3.2xlarge',
-                                                   'ImageId': 'ami-03bca18cb3dc173c9',
+                                                   'ImageId': 'ami-0ac05733838eabc06',
                                                    "BlockDeviceMappings":[{"DeviceName": "/dev/sda1","Ebs" : { "VolumeSize" : 50 }}]}
                                                   ])
         print(o.ec2Client)
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     autoPinCpus=False
     listenPort=6654
     user="root"
-    client_keys=["/root/.ssh/id_rsa"]
+    client_keys=["/Users/giuseppe/.ssh/id_rsa"]
     build=False
 
     def _singleMachine(topo, cluster):
