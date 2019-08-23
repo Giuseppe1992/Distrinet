@@ -160,7 +160,7 @@ You are ready to run your first experiment.
 
 #### Option 2: Docker image
 You need docker installed in your system.
-docker build -t distrinet:1.1 .
+
 * Clone the repository
 
 ```
