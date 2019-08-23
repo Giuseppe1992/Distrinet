@@ -1,0 +1,20 @@
+---
+
+
+- environment: "aws"
+  region: "eu-central-1"
+  user: "ubuntu"
+  network_acl:
+    - IpProtocol: "-1"
+      FromPort: 1
+      ToPort: 65353
+      IpRanges:
+        - CidrIp: "0.0.0.0/0"
+
+- environment: "g5k"
+  location: "nancy"
+  cluster: "grisou"
+  user: "root"
+
+- environment: cluster
+  user: "root"
