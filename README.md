@@ -24,20 +24,7 @@ sudo apt install git
 ```
 sudo apt install python3-pip
 ```
-* boto3 
-```
-pip3 install boto3
-```
 
-* aws cli 
-```
-pip3 install --upgrade awscli
-```
-
-* paramiko 
-```
-pip3 install --upgrade paramiko
-```
 
 * You need to put your AWS Credentials in ~/.aws/credentials.
 You can create your aws_access_key_id and aws_secret_access_key from the [AWS Web interface](https://aws.amazon.com/)
@@ -142,11 +129,12 @@ git clone https://github.com/mininet/mininet.git
 ```
 
 
-* install requirements
+* install requirements and Distrinet
 
 ```
 cd Distrinet
 pip3 install -r requirements.txt
+python3 setup.py install
 ```
 
 * Update you PYTHONPATH with Mininet and Distrinet cloud. (export PYTHONPATH=$PYTHONPATH:mininet_path:distrinet_path)
@@ -181,16 +169,13 @@ Here we explain how to run a simple experiment.
 In this case Distrinet will deploy the virtual instances for you automatically. There an example file on Distrinet/v2/mininet/iperf_test.py
 * Go to Distrinet/v2/mininet/
 ```
-cd  /root/Distrinet/v2/mininet/
+cd  Distrinet/src/
 ```
 
 * you need to edit some lines; you can use the editor that you prefer. in this case I am using vim.
 ```
 vim iperf_test.py
 ```
-
-* at line 98 you have to modify the parameter 'keyname': 'pub_dsaucez' with the name that you assigned to your public key in AWS, in my case I have to modify in: 'keyname': 'DistrinetKeyGiuseppe' 
-* at line 99  and line 102 you have to modify the parameter 'ImageId': 'ami-xxxxx' you need to find the correct ami-ID in your region for Ubuntu:18.04 .
 
 * You are ready to run your first Distrinet experiment :-)
 ```
