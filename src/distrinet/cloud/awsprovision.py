@@ -3,21 +3,18 @@ from time import sleep, time
 import boto3
 import os
 import paramiko
+import uuid
 
-AWS_REGION = 'eu-central-1'
+conf = Provision.get_configurations()
+aws_conf = conf["aws"]
+AWS_REGION = aws_conf["region"]
 SRC_PLAYBOOKS_DIR = "distrinet/cloud/playbooks"
 DST_PLAYBOOKS_DIR = "/root/playbooks"
-MAIN_USER = "ubuntu"
-KEY_PAIR_NAME = 'DistrinetKey'
-IP_PERMISSION = [{'IpProtocol': "-1", 'FromPort': 1, 'ToPort': 65353, 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]}]
-IMAGE_NAME_AWS= "ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-20190722.1"
-
-# AWS_REGION = 'eu-west-3'
-# SRC_PLAYBOOKS_DIR = "/root/distrinet2/distrinet/src/playbooks"
-# DST_PLAYBOOKS_DIR = "/tmp/playbooks"
-# MAIN_USER = "ubuntu"
-# KEY_PAIR_NAME = 'DistrinetKeyDsaucez'
-# IP_PERMISSION = [{'IpProtocol': "-1", 'FromPort': 1, 'ToPort': 65353, 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]}]
+MAIN_USER = aws_conf["user"]
+KEY_PAIR_NAME_WORKERS = 'DistrinetKey-' + str(uuid.uuid4().hex)
+IP_PERMISSION = aws_conf["network_acl"]
+IMAGE_NAME_AWS = aws_conf["image_name"]
+KEY_PAIR_NAME_BASTION = aws_conf["key_name_aws"]
 
 
 class distrinetAWS(Provision):
@@ -36,6 +33,7 @@ class distrinetAWS(Provision):
         self.bastionHostDescription = bastionHostDescription
         self.workersHostsDescription = workersHostsDescription
         self.param = kwargs
+
 
     @staticmethod
     def CreateVPC(VpcName, addressPoolVPC, **kwargs):
@@ -403,7 +401,9 @@ class distrinetAWS(Provision):
 
         self.securityGroup = self.createSecurityGroup(VpcId=vpcId, GroupName="Distrinet", Description="Distrinet")
         securityGroupId = self.securityGroup["GroupId"]
-        self.AuthorizeSecurityGroupTraffic(GroupId=securityGroupId, IpPermissions=IP_PERMISSION, Directions=["ingress"])
+        self.AuthorizeSecurityGroupTraffic(GroupId=securityGroupId,
+                                           IpPermissions=IP_PERMISSION,
+                                           Directions=["ingress"])
 
         self.addRoute(self.publicRouteTable, GatewayId=internetGatewayId, DestinationCidrBlock='0.0.0.0/0')
 
@@ -414,7 +414,7 @@ class distrinetAWS(Provision):
                                                subnetNetwork=self.privateSubnetNetwork,
                                                routeTable=self.privateRouteTable)
 
-        self.privateKey = self.createKeyPair(KeyName=KEY_PAIR_NAME)
+        self.privateKey = self.createKeyPair(KeyName=KEY_PAIR_NAME_WORKERS)
         privateKey = self.privateKey["KeyMaterial"]
 
         publicSubnetId = self.publicSubnet.id
@@ -431,8 +431,12 @@ class distrinetAWS(Provision):
         natGateWayId = self.natGateWay["NatGateway"]["NatGatewayId"]
 
         image_ami = self.getImageAMIFromRegion(Region=AWS_REGION,ImageName=IMAGE_NAME_AWS)
+        "Run the bastion host"
         self.bastionHostDescription["ImageId"] = image_ami
-        self.bastionHost = self.runInstances(SubnetId=publicSubnetId, **self.bastionHostDescription)
+        self.bastionHostDescription["numberOfInstances"] = 1
+        self.bastionHost = self.runInstances(SubnetId=publicSubnetId,
+                                             KeyName=KEY_PAIR_NAME_BASTION,
+                                             **self.bastionHostDescription)
         print(self.bastionHost)
         bastionHostId = self.bastionHost['Instances'][0]['InstanceId']
 
@@ -440,7 +444,7 @@ class distrinetAWS(Provision):
         workerHostsId = []
         for workerDescription in self.workersHostsDescription:
             workerDescription["ImageId"] = image_ami
-            response = self.runInstances(SubnetId=privateSubnetId, KeyName=KEY_PAIR_NAME, **workerDescription)
+            response = self.runInstances(SubnetId=privateSubnetId, KeyName=KEY_PAIR_NAME_WORKERS, **workerDescription)
             self.workerHosts.append(response)
             for instance in response['Instances']:
                 workerHostsId.append(instance['InstanceId'])

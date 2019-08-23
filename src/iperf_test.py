@@ -70,17 +70,19 @@ if __name__ == "__main__":
         vpcname = "demo_{}".format(int(time.time()))
         o = distrinetAWS(VPCName=vpcname, addressPoolVPC="10.0.0.0/16", publicSubnetNetwork='10.0.0.0/24',
                          privateSubnetNetwork='10.0.1.0/24',
-                         bastionHostDescription={"numberOfInstances": 1, 'instanceType': 't3.2xlarge', 'KeyName': 'id_rsa',
-                                                 "BlockDeviceMappings":[{"DeviceName": "/dev/sda1","Ebs" : { "VolumeSize" : 50 }}]},
-                         workersHostsDescription=[{"numberOfInstances": 4, 'instanceType': 't3.2xlarge',
-                                                   "BlockDeviceMappings":[{"DeviceName": "/dev/sda1","Ebs" : { "VolumeSize" : 50 }}]}
+                         bastionHostDescription={'instanceType': 't3.2xlarge',
+                                                 "BlockDeviceMappings":[{"DeviceName": "/dev/sda1",
+                                                                         "Ebs" : { "VolumeSize" : 8 }}]},
+                         workersHostsDescription=[{"numberOfInstances": 2, 'instanceType': 't3.2xlarge',
+                                                   "BlockDeviceMappings":[{"DeviceName": "/dev/sda1",
+                                                                           "Ebs" : { "VolumeSize" : 8 }}]}
                                                   ])
         print(o.ec2Client)
         jump, master, workerHostsPrivateIp = o.deploy()
         cluster = [master] + workerHostsPrivateIp
 
         print ("# sleep 60s to wait for LXD to do its magic")
-        sleep(60)
+        sleep(20)
     print ("jump:", jump, "mastername:", master, "clustername:", cluster)
 
     adminIpBase='192.168.0.1/8'

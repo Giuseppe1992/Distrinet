@@ -3,11 +3,17 @@ from time import sleep, time
 import boto3
 import os
 import paramiko
+from pathlib import Path
+import yaml
+
+CONF_FILE = ".distrinet/conf.yml"
+
 
 class Provision (object):
     def __init__(self, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
+        self.conf = self.get_configurations()
 
     @abstractmethod
     def deploy(self):
@@ -44,8 +50,19 @@ class Provision (object):
         return Provision.executeCommand(SshSession=SshSession, command=command)
 
     @staticmethod
-    def waitMasterUp():
-        sleep(30)
+    def get_configurations():
+        home_path = Path.home()
+        conf_file = home_path / CONF_FILE
+        if not conf_file.exists():
+            raise RuntimeError(f"configuration file: {conf_file} not found")
+
+        with open(str(conf_file), "r") as stream:
+            conf_dict = yaml.safe_load(stream)
+
+        print(conf_dict)
+        return conf_dict
+
+
 
     @staticmethod
     def createSshSession(host, username):
