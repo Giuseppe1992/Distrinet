@@ -1,6 +1,5 @@
 ---
 
-
 - environment: "aws"
   region: "eu-central-1"
   user: "ubuntu"
