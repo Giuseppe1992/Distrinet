@@ -13,7 +13,6 @@ WORKDIR /
 RUN git clone https://github.com/mininet/mininet.git
 RUN git clone https://github.com/Giuseppe1992/Distrinet
 WORKDIR /Distrinet
-RUN git checkout parallel-execution
 ENV PYTHONPATH "${PYTHONPATH}:/mininet:/Distrinet/src/distrinet/cloud"
 RUN pip install -r requirements.txt
 RUN python3.6 setup.py install
