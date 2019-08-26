@@ -4,6 +4,7 @@ import boto3
 import os
 import paramiko
 import uuid
+from botocore.exceptions import ClientError
 
 conf = Provision.get_configurations()
 aws_conf = conf["aws"]
@@ -49,6 +50,68 @@ class distrinetAWS(Provision):
         vpc.create_tags(Tags=[{"Key": "Name", "Value": VpcName}])
         vpc.wait_until_available()
         return vpc
+
+    @staticmethod
+    def removeVPC(VpcId):
+        """
+        Remove the vpc using boto3.resource('ec2')
+        :param vpcId: Id of the Vpc
+        :return: client response
+        Script used from https://gist.github.com/vernhart/c6a0fc94c0aeaebe84e5cd6f3dede4ce
+
+        """
+        vpcid = VpcId
+        ec2 = distrinetAWS.ec2Resource
+        ec2client = ec2.meta.client
+        vpc = ec2.Vpc(vpcid)
+        # detach default dhcp_options if associated with the vpc
+        dhcp_options_default = ec2.DhcpOptions('default')
+        if dhcp_options_default:
+            dhcp_options_default.associate_with_vpc(
+                VpcId=vpc.id
+            )
+        # detach and delete all gateways associated with the vpc
+        for gw in vpc.internet_gateways.all():
+            vpc.detach_internet_gateway(InternetGatewayId=gw.id)
+            gw.delete()
+        # delete all route table associations
+        for rt in vpc.route_tables.all():
+            for rta in rt.associations:
+                if not rta.main:
+                    rta.delete()
+        # delete any instances
+        for subnet in vpc.subnets.all():
+            for instance in subnet.instances.all():
+                instance.terminate()
+        # delete our endpoints
+        for ep in ec2client.describe_vpc_endpoints(
+                Filters=[{
+                    'Name': 'vpc-id',
+                    'Values': [vpcid]
+                }])['VpcEndpoints']:
+            ec2client.delete_vpc_endpoints(VpcEndpointIds=[ep['VpcEndpointId']])
+        # delete our security groups
+        for sg in vpc.security_groups.all():
+            if sg.group_name != 'default':
+                sg.delete()
+        # delete any vpc peering connections
+        for vpcpeer in ec2client.describe_vpc_peering_connections(
+                Filters=[{
+                    'Name': 'requester-vpc-info.vpc-id',
+                    'Values': [vpcid]
+                }])['VpcPeeringConnections']:
+            ec2.VpcPeeringConnection(vpcpeer['VpcPeeringConnectionId']).delete()
+        # delete non-default network acls
+        for netacl in vpc.network_acls.all():
+            if not netacl.is_default:
+                netacl.delete()
+        # delete network interfaces
+        for subnet in vpc.subnets.all():
+            for interface in subnet.network_interfaces.all():
+                interface.delete()
+            subnet.delete()
+        # finally, delete the vpc
+        return ec2client.delete_vpc(VpcId=vpcid)
 
     @staticmethod
     def getImageAMIFromRegion(Region, ImageName):
@@ -383,12 +446,37 @@ class distrinetAWS(Provision):
                                                                                                   "utf-8")[:-1])
             distrinetAWS.executeCommand(SshSession=SshSession, command=command)
 
+
+    @staticmethod
+    def isKeyNameExistingInRegion(KeyName, region):
+        return True
+
+    @staticmethod
+    def releaseElasticIP(ElasticIpID):
+        """
+        release An elastic IP
+        :param ElasticIpID: IP id
+        :return: client responce
+        """
+        responce = distrinetAWS.ec2Client.release_address(AllocationId=ElasticIpID)
+        return responce
+
+
     def deploy(self):
         """
         Deploy Amazon environment
         :return: BastionHost Ip, masterHostPrivateIp, PrivateHosts Ip
         """
+        if not self.isKeyNameExistingInRegion(KeyName=KEY_PAIR_NAME_BASTION, region=AWS_REGION):
+            raise Exception(f"Key: {KEY_PAIR_NAME_BASTION} not found in region: {AWS_REGION}")
+
+        try:
+            image_ami = self.getImageAMIFromRegion(Region=AWS_REGION,ImageName=IMAGE_NAME_AWS)
+        except:
+            raise Exception(f"{IMAGE_NAME_AWS} not existing in region {AWS_REGION}")
+
         self.vpc = self.CreateVPC(VpcName=self.VPCName, addressPoolVPC=self.addressPoolVPC)
+
         vpcId = self.vpc.id
         self.modifyEnableDnsSupport(VpcId=vpcId, Value=True)
         self.modifyEnableDnsHostnames(VpcId=vpcId, Value=True)
@@ -420,17 +508,23 @@ class distrinetAWS(Provision):
         publicSubnetId = self.publicSubnet.id
         privateSubnetId = self.privateSubnet.id
 
-        self.bastionHostPublicIp = self.createElasticIp(Domain='vpc')
-        self.natGateWayPublicIp = self.createElasticIp(Domain='vpc')
+        try:
+            self.bastionHostPublicIp = self.createElasticIp(Domain='vpc')
+            bastionHostPublicIpId = self.bastionHostPublicIp['AllocationId']
+            bastionHostPublicIp = self.bastionHostPublicIp["PublicIp"]
+        except:
+            self.removeVPC(VpcId=vpcId)
 
-        bastionHostPublicIpId = self.bastionHostPublicIp['AllocationId']
-        natGateWayPublicIpId = self.natGateWayPublicIp["AllocationId"]
-        bastionHostPublicIp = self.bastionHostPublicIp["PublicIp"]
+        try:
+            self.natGateWayPublicIp = self.createElasticIp(Domain='vpc')
+            natGateWayPublicIpId = self.natGateWayPublicIp["AllocationId"]
+        except:
+            self.removeVPC(VpcId=vpcId)
+            self.releaseElasticIP(ElasticIpID=bastionHostPublicIpId)
 
         self.natGateWay = self.createNatGateWay(SubnetId=publicSubnetId, AllocationId=natGateWayPublicIpId)
         natGateWayId = self.natGateWay["NatGateway"]["NatGatewayId"]
 
-        image_ami = self.getImageAMIFromRegion(Region=AWS_REGION,ImageName=IMAGE_NAME_AWS)
         "Run the bastion host"
         self.bastionHostDescription["ImageId"] = image_ami
         self.bastionHostDescription["numberOfInstances"] = 1
@@ -491,13 +585,16 @@ class distrinetAWS(Provision):
 if __name__ == '__main__':
     o = distrinetAWS(VPCName="DEMO", addressPoolVPC="10.0.0.0/16", publicSubnetNetwork='10.0.0.0/24',
                      privateSubnetNetwork='10.0.1.0/24',
-                     bastionHostDescription={"numberOfInstances": 1, 'instanceType': 't3.2xlarge',
-                                             'KeyName': 'id_rsa', "BlockDeviceMappings": [
-                             {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 8}}]},
+                     bastionHostDescription={'instanceType': 't3.2xlarge',
+                                             "BlockDeviceMappings": [
+                                                 {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 8}}
+                                             ]
+                                             },
                      workersHostsDescription=[{"numberOfInstances": 1, 'instanceType': 't3.2xlarge',
                                                "BlockDeviceMappings": [
                                                    {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 8}}]}
-                                              ])
+                                             ])
+    
     print(o.ec2Client)
     start = time()
     print(o.deploy())
