@@ -10,7 +10,7 @@ from time import sleep
 
 from distrinet.topodc import (HadoopDumbbellTopo, getHadoopMaster, DumbbellTopo)
 
-from distrinet.cloud.cloudcontroller import (LxcRemoteController)
+from distrinet.cloud.cloudcontroller import (LxcRemoteController, RyuNativeController, OnosNativeController)
 
 from distrinet.cloud.lxc_container import (LxcNode)
 from distrinet.cloud.cloudswitch import (LxcOVSSwitch)
@@ -74,22 +74,18 @@ if __name__ == "__main__":
                          privateSubnetNetwork='10.0.1.0/24',
                          bastionHostDescription={'instanceType': 't3.2xlarge',
                                                  "BlockDeviceMappings":[{"DeviceName": "/dev/sda1",
-                                                                         "Ebs" : { "VolumeSize" : 8 }}]},
+                                                                         "Ebs" : { "VolumeSize" : 50 }}]},
                          workersHostsDescription=[{"numberOfInstances": 2, 'instanceType': 't3.2xlarge',
                                                    "BlockDeviceMappings":[{"DeviceName": "/dev/sda1",
-                                                                           "Ebs" : { "VolumeSize" : 8 }}]}
+                                                                           "Ebs" : { "VolumeSize" : 50 }}]}
                                                   ])
         print(o.ec2Client)
         jump, master, workerHostsPrivateIp = o.deploy()
         cluster = [master] + workerHostsPrivateIp
-
-        print ("# sleep 60s to wait for LXD to do its magic")
-        sleep(20)
     else:
         print ("# Already deployed")
 
-
-    assert options.cluster, "must provide a cluster "
+    assert cluster, "must provide a cluster "
 
     print ("jump:", jump, "mastername:", master, "clustername:", cluster)
 
@@ -166,8 +162,7 @@ if __name__ == "__main__":
     masterSsh = ASsh(loop=mn.loop, host=master, username=user, bastion=jump, client_keys=client_keys)
     masterSsh.connect()
     masterSsh.waitConnected()
-####    masterSsh.cmd("nohup /usr/bin/ryu-manager --verbose /usr/lib/python2.7/dist-packages/ryu/app/simple_switch_13.py >& controller.dat &")
-    mn.addController(name='c0', controller=LxcRemoteController, ip="192.168.0.1", port=6633 )
+    mn.addController(name='c0', controller=RyuNativeController, ip="192.168.0.1", port=6633 , masterSsh=masterSsh)
 
     mn.build()
     print (dir (mn))

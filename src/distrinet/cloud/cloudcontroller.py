@@ -105,7 +105,7 @@ class LxcRyu( LxcController ):
 class LxcRemoteController( object ):
     "Controller running outside of Mininet's control."
 
-    def __init__( self, name, ip='127.0.0.1',
+    def __init__( self, name, masterSsh, ip='127.0.0.1',
                   port=None, **kwargs):
         """Init.
            name: name to give controller
@@ -117,6 +117,7 @@ class LxcRemoteController( object ):
         if ':' in ip:
             ip, port = ip.split( ':' )
             port = int( port )
+        self.masterSsh = masterSsh
         self.ip = ip
         self.port = port
         self.protocol = 'tcp'
@@ -148,6 +149,9 @@ class LxcRemoteController( object ):
             warn( "Setting remote controller"
                   " to %s:%d\n" % ( self.ip, self.port ))
 
+    def cmd(self, cmd):
+        return self.masterSsh.cmd(cmd)
+
     def isListening( self, ip, port ):
         "Check if a remote controller is listening at a specific ip and port"
 #        listening = self.cmd( "echo A | telnet -e A %s %d" % ( ip, port ) )
@@ -175,3 +179,34 @@ class LxcRemoteController( object ):
 
     def isAvailable( cls ):
         return True
+
+class OnosNativeController( LxcRemoteController ):
+    "Controller running outside of Mininet's control."
+
+    def start( self ):
+        print ("start controller")
+        self.cmd("screen -d -m -S OnosCtroller /opt/onos-2.1.0/bin/onos-service start")
+        return
+
+    def stop( self ):
+        self.cmd('/opt/onos-2.1.0/bin/onos-service stop')
+        return
+
+
+
+class RyuNativeController( LxcRemoteController ):
+    "Controller running outside of Mininet's control."
+
+    def start( self ):
+        "Overridden to do nothing."
+        print ("start controller")
+        self.cmd("screen -d -m -S RyuController /usr/bin/ryu-manager --verbose /usr/lib/python2.7/dist-packages/ryu/app/simple_switch_13.py")
+        return
+
+    def stop( self ):
+        "Overridden to do nothing."
+        print ("stop controller")
+        self.cmd("killall ryu-manager")
+        return
+
+
