@@ -19,7 +19,7 @@ setup(
     version='1.1',
     python_requires='>=3.6',
     packages=["src"],
-    url='https://github.com/Giuseppe1992/Distrinet/tree/parallel-execution',
+    url='https://github.com/Giuseppe1992/Distrinet/tree/master',
     dependency_links=['http://github.com/mininet/mininet/tarball/master#egg=mininet',
                       "https://github.com/Giuseppe1992/mapping_distrinet.git"],
     install_requires=required,
