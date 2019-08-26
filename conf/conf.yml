@@ -1,10 +1,10 @@
 ---
 
 ssh:
-  pub_id: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDgEnskmrOMpOht9KZV2rIYYLKkw4BSd8jw4t9cJKclE9BEFyPFr4H4O0KR85BP64dXQgAYumHv9ufnNe1jntLhilFql2uXmLcaJv5nDFdn7YEd01GUN2QUkNy6yguTO8QGmqnpKYxYiKz3b8mWDWY2vXaPvtHksaGJu2BFranA3dEuCFsVEP4U295z6LfG3K0vr+M0xawhJ8GRUnX+EyjK5rCOn0Nc04CmSVjIpNazyXyni4cW4q8FUADtxoi99w9fVIlFcdMAgoS65FxAxOF11bM6EzbJczdN4d9IjS4NPBqcWjwCH14ZWUAXvv3t090tUQOLGdDOih+hhPjHTAZt root@7349f78b2047"
-  user: "root"
-  client_keys: ["/Users/giuseppe/.ssh/id_rsa"]
-  bastion: "15.188.17.234"
+  pub_id: "ssh-rsa AAtJippVLt5bTPSQq6LYlEN8V16SRF9oF93X2nTKGjyZ3zicTCFn6BjGm8pGOZMXGMd23KsAmSyBtZiupDf71IRk0m3H0uua1EoeBzzKckoWYkCQX1WIiR2Jm4TAHDuDismBtL07Cz3JKvl0yQVHSkJ2zrCpyZUFo73euVU584GScqGng6aQzuGn0JVWFmf5Q71vO9Avuau2EfP0ebDHSuoePmjLv8TDHu46KaLVRHVEZOIF5vRc7HEltRdgm8qR8rlJKuXLRFD3zPSr5bLVKa6UmygSH7MMBQ5rlYDKSUJc4PrjIRuhvTdkg2rbYFQ5GDezdPIGEybWS022deY3hbaSYc8XUqPxMpCrcjMDwdfqAq8MZdsp user@example.org"
+  user: "login"
+  client_keys: ["/home/user/.ssh/id_rsa"]
+  bastion: "bastion.example.org"
 
 aws:
   region: "eu-central-1"
