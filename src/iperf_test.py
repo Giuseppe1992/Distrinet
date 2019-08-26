@@ -22,7 +22,7 @@ from util import makeFile, makeHosts
 from optparse import OptionParser
 """
 Example:
-    python3 iperf_test.py --pub-id="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDgEnskmrOMpOht9KZV2rIYYLKkw4BSd8jw4t9cJKclE9BEFyPFr4H4O0KR85BP64dXQgAYumHv9ufnNe1jntLhilFql2uXmLcaJv5nDFdn7YEd01GUN2QUkNy6yguTO8QGmqnpKYxYiKz3b8mWDWY2vXaPvtHksaGJu2BFranA3dEuCFsVEP4U295z6LfG3K0vr+M0xawhJ8GRUnX+EyjK5rCOn0Nc04CmSVjIpNazyXyni4cW4q8FUADtxoi99w9fVIlFcdMAgoS65FxAxOF11bM6EzbJczdN4d9IjS4NPBqcWjwCH14ZWUAXvv3t090tUQOLGdDOih+hhPjHTAZt root@7349f78b2047" -n 10  --jump "52.47.186.84" --master="ip-10-0-0-39" --cluster="ip-10-0-0-39,ip-10-0-1-247"
+    python3 iperf_test.py -n 10  --bastion "52.47.186.84" --cluster="ip-10-0-0-39,ip-10-0-1-247"
 """
 if __name__ == "__main__":
     import time
@@ -31,39 +31,41 @@ if __name__ == "__main__":
     host, switch, link = LxcNode, LxcOVSSwitch, CloudLink
 
     parser = OptionParser()
-    parser.add_option("--pub-id", dest="pub_id",
-                      help="public key to access the cloud", metavar="pub_id")
     parser.add_option("-n", dest="n", default=4,
                       help="number of hosts to emulate", metavar="n")
     parser.add_option("-s", "--single", dest="single", default=False,
                       action="store_true", help="Should we run the experiment on one machine only", metavar="single")
-    parser.add_option("-j","--jump", dest="jump",
-                      help="jump node (bastion)", metavar="jump")
-    parser.add_option("-m","--master", dest="master",
-                      help="master node name", metavar="master")
+    parser.add_option("-b","--bastion", dest="bastion",
+                      help="bsation node", metavar="bastion")
     parser.add_option("-c","--cluster", dest="cluster",
                       help="clusters nodes (their LXC name)", metavar="cluster")
     (options, args) = parser.parse_args()
 
-    # The public key to use
-    pub_id = options.pub_id
+    from provision import Provision
+    conf = Provision.get_configurations()
+    ssh_conf = conf["ssh"]
+    pub_id = ssh_conf["pub_id"]
+    client_keys = ssh_conf["client_keys"]
+    user = ssh_conf["user"]
+    jump = ssh_conf.get("bastion", None)
 
     # number of hosts in the dumbbell
     n = int(options.n)
 
     topo = DumbbellTopo(n=n, pub_id=pub_id, sopts={"image":"switch","controller":"c0", 'pub_id':pub_id, "cpu":1, "memory":"2GB"}, hopts={"image":"ubuntu", 'pub_id':pub_id, "cpu":1, "memory":"2GB"}, lopts={"rate":1000,"bw":1000})
 
+
     # should we deploy to Amazon first?
     #    nope
-    if options.jump:
-        print ("# Already deployed")
-        assert options.master, "must provide a master when a jump is provided"
-        assert options.cluster, "must provide a cluster when a jump is provided"
-        jump = options.jump
-        master= options.master
+    if options.bastion:
+        jump = options.bastion
+
+    if options.cluster:
         cluster = options.cluster.split(",")
-    #    yep
-    else:
+        master = cluster[0]
+    
+    # we have to deploy first
+    if jump is None:
         print ("# Deploy on Amazon")
         from distrinet.cloud.awsprovision import distrinetAWS
 
@@ -83,6 +85,12 @@ if __name__ == "__main__":
 
         print ("# sleep 60s to wait for LXD to do its magic")
         sleep(20)
+    else:
+        print ("# Already deployed")
+
+
+    assert options.cluster, "must provide a cluster "
+
     print ("jump:", jump, "mastername:", master, "clustername:", cluster)
 
     adminIpBase='192.168.0.1/8'
@@ -95,8 +103,7 @@ if __name__ == "__main__":
     autoStaticArp=False
     autoPinCpus=False
     listenPort=6654
-    user="root"
-    client_keys=["/Users/giuseppe/.ssh/id_rsa"]
+
     build=False
 
     def _singleMachine(topo, cluster):
@@ -134,7 +141,6 @@ if __name__ == "__main__":
     if options.single:
         places = _singleMachine(topo, cluster)
     else:
-#        places = _twoMachines(topo, cluster)
         places = _rounRobin(topo, cluster)
 
     mapper = DummyMapper(places=places)
@@ -160,7 +166,7 @@ if __name__ == "__main__":
     masterSsh = ASsh(loop=mn.loop, host=master, username=user, bastion=jump, client_keys=client_keys)
     masterSsh.connect()
     masterSsh.waitConnected()
-    masterSsh.cmd("nohup /usr/bin/ryu-manager --verbose /usr/lib/python2.7/dist-packages/ryu/app/simple_switch_13.py >& controller.dat &")
+####    masterSsh.cmd("nohup /usr/bin/ryu-manager --verbose /usr/lib/python2.7/dist-packages/ryu/app/simple_switch_13.py >& controller.dat &")
     mn.addController(name='c0', controller=LxcRemoteController, ip="192.168.0.1", port=6633 )
 
     mn.build()
@@ -192,8 +198,8 @@ if __name__ == "__main__":
     srcLink.config(**{ 'bw' : 1000})
     dstLink.config(**{ 'bw' : 1000})
 
-#    from mininet.cli import CLI
-#    CLI(mn)
+    from mininet.cli import CLI
+    CLI(mn)
 
 
     # iperf servers
@@ -208,7 +214,7 @@ if __name__ == "__main__":
     print ("# measure bandwidth")
     for i in range(half-1):
         print ("#   between {} and {}".format(mn.hosts[i], mn.hosts[-i-1]))
-        t = 60
+        t = 120
         mn.hosts[i].sendCmd("iperf -t {} -c {}".format(t, mn.hosts[-i-1]) )
 
 
@@ -228,7 +234,7 @@ if __name__ == "__main__":
 
     print ("# real test between {} and {}".format(mn.hosts[half-1], mn.hosts[-(half-1)-1]))
     time.sleep(10)
-    iperfOutput = mn.hosts[half-1].cmd("iperf -t {} -c {}".format(10, mn.hosts[-(half-1)-1]) )
+    iperfOutput = mn.hosts[half-1].cmd("iperf -t {} -c {}".format(60, mn.hosts[-(half-1)-1]) )
     print (_parseIperf(iperfOutput))
 
     for i in range(half-1):
