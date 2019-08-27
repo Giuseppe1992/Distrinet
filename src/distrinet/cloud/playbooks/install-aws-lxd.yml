@@ -63,5 +63,3 @@
 
     - name   : allow root access
       command: sudo cp /home/ubuntu/.ssh/authorized_keys /root/.ssh/authorized_keys
-
-
