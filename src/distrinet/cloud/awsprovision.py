@@ -52,6 +52,52 @@ class distrinetAWS(Provision):
         return vpc
 
     @staticmethod
+    def CheckResources(VpcNeeded=1, ElasticIpNeeded=2, instancesNeeded=(("t3.2xlarge", 2),)):
+
+        # TODO: find the best way to get this data directly from AWS
+        default_max_vpcs = 5
+        default_max_elastic_ip = 5
+        default_max_instances_per_type = 5
+        default_total_max_instances = 20
+        ############################################################
+
+        usedVpc = len(distrinetAWS.ec2Client.describe_vpcs()["Vpcs"])
+        if usedVpc + VpcNeeded > default_max_vpcs:
+            raise PermissionError(f"You dont have enough free Vpcs: Required={VpcNeeded},"
+                                  f" used={usedVpc}, limit={default_max_vpcs}")
+
+        usedElasticIps = len(distrinetAWS.ec2Client.describe_addresses()["Addresses"])
+        if usedElasticIps + ElasticIpNeeded > default_max_elastic_ip:
+            raise PermissionError(f"You dont have enough free ElasticIp: Required={ElasticIpNeeded},"
+                                  f" used={usedElasticIps}, limit={default_max_elastic_ip}")
+
+        usedInstances = {}
+        for reservation in distrinetAWS.ec2Client.describe_instances()["Reservations"]:
+            instances = reservation["Instances"]
+            for instance in instances:
+                instance_type = instance['InstanceType']
+                if instance_type in usedInstances.keys():
+                    usedInstances[instance_type] += 1
+                else:
+                    usedInstances[instance_type] = 1
+
+        total_requested = sum([n for _, n in instancesNeeded])
+        if sum(usedInstances.values()) + total_requested > default_total_max_instances:
+            raise PermissionError(f"You dont have enough free instances: Required={total_requested},"
+                                  f" used={sum(usedInstances.values())}, limit={default_total_max_instances}")
+
+        for instance, _ in instancesNeeded:
+            if instance not in usedInstances.keys():
+                usedInstances[instance] = 0
+
+        for instance_type, number_requested in instancesNeeded:
+            if usedInstances[instance_type] + number_requested > default_max_instances_per_type:
+                raise PermissionError(f"You dont have enough free {instance_type} instances: "
+                                      f"Required={number_requested},  used={usedInstances[instance_type]}, "
+                                      f"limit={default_max_instances_per_type}")
+
+
+    @staticmethod
     def removeVPC(VpcId):
         """
         Remove the vpc using boto3.resource('ec2')
@@ -245,6 +291,7 @@ class distrinetAWS(Provision):
         :return: Route Table Object
         """
         RouteTable = Vpc.create_route_table(**kwargs)
+        sleep(1)
         RouteTable.create_tags(Tags=[{"Key": "Name", "Value": TableName}])
         return RouteTable
 
@@ -470,10 +517,21 @@ class distrinetAWS(Provision):
         if not self.isKeyNameExistingInRegion(KeyName=KEY_PAIR_NAME_BASTION, region=AWS_REGION):
             raise Exception(f"Key: {KEY_PAIR_NAME_BASTION} not found in region: {AWS_REGION}")
 
-        try:
-            image_ami = self.getImageAMIFromRegion(Region=AWS_REGION,ImageName=IMAGE_NAME_AWS)
-        except:
-            raise Exception(f"{IMAGE_NAME_AWS} not existing in region {AWS_REGION}")
+
+        image_ami = self.getImageAMIFromRegion(Region=AWS_REGION,ImageName=IMAGE_NAME_AWS)
+
+        instance_needed = {self.bastionHostDescription["instanceType"] : 1}
+        for instance in self.workersHostsDescription:
+            instanceType = instance["instanceType"]
+            numberOfInstances = instance["numberOfInstances"]
+            if instanceType in instance_needed.keys():
+                instance_needed[instanceType] += numberOfInstances
+            else:
+                instance_needed[instanceType] = numberOfInstances
+
+        instance_needed = [(instanceType, instance_needed[instanceType]) for instanceType in instance_needed]
+        #raise an error if the resources in the region are not enough without starting to deploy
+        self.CheckResources(VpcNeeded=1, ElasticIpNeeded=2, instancesNeeded=instance_needed)
 
         self.vpc = self.CreateVPC(VpcName=self.VPCName, addressPoolVPC=self.addressPoolVPC)
 
@@ -508,19 +566,15 @@ class distrinetAWS(Provision):
         publicSubnetId = self.publicSubnet.id
         privateSubnetId = self.privateSubnet.id
 
-        try:
-            self.bastionHostPublicIp = self.createElasticIp(Domain='vpc')
-            bastionHostPublicIpId = self.bastionHostPublicIp['AllocationId']
-            bastionHostPublicIp = self.bastionHostPublicIp["PublicIp"]
-        except:
-            self.removeVPC(VpcId=vpcId)
 
-        try:
-            self.natGateWayPublicIp = self.createElasticIp(Domain='vpc')
-            natGateWayPublicIpId = self.natGateWayPublicIp["AllocationId"]
-        except:
-            self.removeVPC(VpcId=vpcId)
-            self.releaseElasticIP(ElasticIpID=bastionHostPublicIpId)
+        self.bastionHostPublicIp = self.createElasticIp(Domain='vpc')
+        bastionHostPublicIpId = self.bastionHostPublicIp['AllocationId']
+        bastionHostPublicIp = self.bastionHostPublicIp["PublicIp"]
+
+
+        self.natGateWayPublicIp = self.createElasticIp(Domain='vpc')
+        natGateWayPublicIpId = self.natGateWayPublicIp["AllocationId"]
+
 
         self.natGateWay = self.createNatGateWay(SubnetId=publicSubnetId, AllocationId=natGateWayPublicIpId)
         natGateWayId = self.natGateWay["NatGateway"]["NatGatewayId"]
@@ -583,9 +637,22 @@ class distrinetAWS(Provision):
 
 
 if __name__ == '__main__':
-    o = distrinetAWS(VPCName="DEMO", addressPoolVPC="10.0.0.0/16", publicSubnetNetwork='10.0.0.0/24',
+    o = distrinetAWS(VPCName="DEMO-", addressPoolVPC="10.0.0.0/16", publicSubnetNetwork='10.0.0.0/24',
                      privateSubnetNetwork='10.0.1.0/24',
+                     TagSpecifications=[
+                         {
+                             "ResourceType": "instance",
+                             'Tags': [
+                                 {
+                                     'Key': 'Name',
+                                     'Value': 'Bastion'
+                                 },
+                             ]
+                         },
+                     ],
                      bastionHostDescription={'instanceType': 't3.2xlarge',
+
+
                                              "BlockDeviceMappings": [
                                                  {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 8}}
                                              ]
@@ -594,8 +661,8 @@ if __name__ == '__main__':
                                                "BlockDeviceMappings": [
                                                    {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 8}}]}
                                              ])
+
+    o.deploy()
     
-    print(o.ec2Client)
-    start = time()
-    print(o.deploy())
-    print("Environment ready in {} seconds".format(time() - start))
+    #input()
+    #distrinetAWS.removeVPC("vpc-07b8b8a1cd0bb4be0")
