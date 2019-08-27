@@ -27,5 +27,5 @@ where `<ip>` is an address reachable on the admin network where an OpenFlow cont
 ## Example
 
 ```
-python3 dmn --workers="10.0.0.28,10.0.1.219,10.0.1.23" --topo=linear,4 --controller=lxcremote,ip=192.168.0.1
+python3 dmn --workers="10.0.0.28,10.0.1.219,10.0.1.23" --topo=linear,4 --controller=lxcremote,ip=192.168.0.1 --test pingall
 ```
