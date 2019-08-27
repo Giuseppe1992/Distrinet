@@ -105,7 +105,7 @@ class LxcRyu( LxcController ):
 class LxcRemoteController( object ):
     "Controller running outside of Mininet's control."
 
-    def __init__( self, name, masterSsh, ip='127.0.0.1',
+    def __init__( self, name, ip='127.0.0.1',
                   port=None, **kwargs):
         """Init.
            name: name to give controller
@@ -117,7 +117,6 @@ class LxcRemoteController( object ):
         if ':' in ip:
             ip, port = ip.split( ':' )
             port = int( port )
-        self.masterSsh = masterSsh
         self.ip = ip
         self.port = port
         self.protocol = 'tcp'
@@ -180,7 +179,20 @@ class LxcRemoteController( object ):
     def isAvailable( cls ):
         return True
 
-class OnosNativeController( LxcRemoteController ):
+from distrinet.cloud.assh import ASsh
+class NativeController( LxcRemoteController ):
+    def __init__( self, name, masterSsh, ip='127.0.0.1',
+                  port=None, **kwargs):
+        """Init.
+           name: name to give controller
+           ip: the IP address where the remote controller is
+           listening
+           port: the port where the remote controller is listening"""
+        self.masterSsh = masterSsh
+        super(NativeController, self).__init__(name=name, ip=ip, port=port, **kwargs)
+
+
+class OnosNativeController( NativeController ):
     "Controller running outside of Mininet's control."
 
     def start( self ):
@@ -194,7 +206,7 @@ class OnosNativeController( LxcRemoteController ):
 
 
 
-class RyuNativeController( LxcRemoteController ):
+class RyuNativeController( NativeController ):
     "Controller running outside of Mininet's control."
 
     def start( self ):

@@ -56,6 +56,8 @@ from distrinet.topodc import (DumbbellTopo)
 from distrinet.cloud.awsprovision import (distrinetAWS)
 PROVISIONDEF = 'aws'
 PROVISION = { 'aws': distrinetAWS }
+
+from distrinet.cloud.cloudcontroller import (LxcRemoteController)
 # =============================================================================
 
 # built in topologies, created only when run
@@ -88,6 +90,7 @@ CONTROLLERS = { 'ref': Controller,
                 'ovsc': OVSController,
                 'nox': NOX,
                 'remote': RemoteController,
+                'lxcremote': LxcRemoteController,
                 'ryu': Ryu,
                 'default': DefaultController,  # Note: overridden below
                 'none': NullController }
@@ -542,14 +545,15 @@ class MininetRunner( object ):
                           'may break host DNS over NAT\n')
             mn.addNAT( *opts.nat_args, **opts.nat_kwargs ).configDefault()
 
-        if opts.workers or opts.provision:
-            from distrinet.cloud.assh import ASsh
-            masterSsh = ASsh(loop=mn.loop, host=master, username=user, bastion=jump, client_keys=client_keys)
-            masterSsh.connect()
-            masterSsh.waitConnected()
-            from distrinet.cloud.cloudcontroller import (LxcRemoteController, RyuNativeController, OnosNativeController)
-            mn.addController(name='c0', controller=RyuNativeController, ip="192.168.0.1", port=6633 , masterSsh=masterSsh)
-            print ("controller added")
+
+#        if opts.workers or opts.provision:
+#            from distrinet.cloud.assh import ASsh
+#            masterSsh = ASsh(loop=mn.loop, host=master, username=user, bastion=jump, client_keys=client_keys)
+#            masterSsh.connect()
+#            masterSsh.waitConnected()
+#            from distrinet.cloud.cloudcontroller import (LxcRemoteController, RyuNativeController, OnosNativeController)
+#            mn.addController(name='c0', controller=RyuNativeController, ip="192.168.0.1", port=6633 , masterSsh=masterSsh)
+#            print ("controller added")
 
         # --custom files can set CLI or change mininet.cli.CLI
         CLI = mininet.cli.CLI if CLI is None else CLI
