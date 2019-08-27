@@ -792,6 +792,7 @@ class Distrinet( Mininet ):
             for device in node.devicesMaster:
                 print ("delete device {} on master".format(device))
                 self.masterSsh.cmd("ip link delete {}".format(device))
+        self.loop.stop()
         info( '\n*** Done\n' )
 
     def run( self, test, *args, **kwargs ):
