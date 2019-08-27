@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 """
 Mininet runner
 author: Brandon Heller (brandonh@stanford.edu)
@@ -9,8 +10,6 @@ To see options:
 Example to pull custom params (topo, switch, etc.) from a file:
   sudo mn --custom ~/mininet/custom/custom_example.py
 """
-import warnings
-warnings.simplefilter('ignore')
 
 from optparse import OptionParser
 import os
@@ -35,9 +34,6 @@ from mininet.link import Link, TCLink, TCULink, OVSLink
 from mininet.topo import ( SingleSwitchTopo, LinearTopo,
                            SingleSwitchReversedTopo, MinimalTopo )
 from mininet.topolib import TreeTopo, TorusTopo
-from distrinet.topodc import (DirectHostsTopo, DumbbellTopo, FatTreeTopo, DemoTopo, LxcSingleSwitchTopo)
-from distrinet.cloud.cloudcontroller import (LxcRemoteController)
-
 from mininet.util import customClass, specialClass, splitArgs
 from mininet.util import buildTopo
 
@@ -52,6 +48,12 @@ from mininet.examples.clustercli import ClusterCLI
 
 PLACEMENT = { 'block': SwitchBinPlacer, 'random': RandomPlacer }
 
+# ==
+from distrinet.dummymapper import DummyMapper
+MAPPER = { 'dummymapper': DummyMapper }
+from distrinet.topodc import (DumbbellTopo)
+# =============================================================================
+
 # built in topologies, created only when run
 TOPODEF = 'minimal'
 TOPOS = { 'minimal': MinimalTopo,
@@ -60,12 +62,7 @@ TOPOS = { 'minimal': MinimalTopo,
           'single': SingleSwitchTopo,
           'tree': TreeTopo,
           'torus': TorusTopo,
-          'p2p': DirectHostsTopo,
-          'dumbbell': DumbbellTopo,
-          'fattree': FatTreeTopo,
-          'demo': DemoTopo,
-          'lxcsingle':LxcSingleSwitchTopo
-          }
+          'dumbbell': DumbbellTopo}
 
 SWITCHDEF = 'default'
 SWITCHES = { 'user': UserSwitch,
@@ -87,7 +84,6 @@ CONTROLLERS = { 'ref': Controller,
                 'ovsc': OVSController,
                 'nox': NOX,
                 'remote': RemoteController,
-                'lxcremote': LxcRemoteController,
                 'ryu': Ryu,
                 'default': DefaultController,  # Note: overridden below
                 'none': NullController }
@@ -98,15 +94,11 @@ LINKS = { 'default': Link,  # Note: overridden below
           'tcu': TCULink,
           'ovs': OVSLink }
 
-from distrinet.cloud.awsprovision import distrinetAWS
-PROVISIONDEF = None
-PROVISION = {'amazon': distrinetAWS,}
-
 # TESTS dict can contain functions and/or Mininet() method names
 # XXX: it would be nice if we could specify a default test, but
 # this may be tricky
 TESTS = { name: True
-          for name in ( 'pingall', 'pingpair', 'iperf', 'iperfudp', 'pingallfull') }
+          for name in ( 'pingall', 'pingpair', 'iperf', 'iperfudp' ) }
 
 CLI = None  # Set below if needed
 
@@ -126,8 +118,7 @@ TESTS.update( all=allTest, none=nullTest, build=nullTest )
 
 # Map to alternate spellings of Mininet() methods
 ALTSPELLING = { 'pingall': 'pingAll', 'pingpair': 'pingPair',
-                'iperfudp': 'iperfUdp', 'pingallfull':'pingAllFull'}
-
+                'iperfudp': 'iperfUdp' }
 
 def runTests( mn, options ):
     """Run tests
@@ -140,7 +131,6 @@ def runTests( mn, options ):
             test, args, kwargs = splitArgs( test )
             test = ALTSPELLING.get( test.lower(), test )
             testfn = TESTS.get( test, test )
-
             if callable( testfn ):
                 testfn( mn, *args, **kwargs )
             elif hasattr( mn, test ):
@@ -304,25 +294,32 @@ class MininetRunner( object ):
         opts.add_option( '--cluster', type='string', default=None,
                          metavar='server1,server2...',
                          help=( 'run on multiple servers (experimental!)' ) )
-
-        # DSA
-#        opts.add_option( '--cloud', action='store_true', default=False,
-#                         help='run in a cloud (experimental!)' )
-        opts.add_option( '--cloud', type='string', default=None,
-                         metavar='master name',
-                         help='run in a cloud (experimental!)' )
-        opts.add_option( '--jump', type='string', default=None,
-                         metavar='host name',
-                         help=( 'gives the jump node, requires --cloud' ) )
-        opts.add_option( '--provision', type='string', default=None,
-                         metavar='amazon|g5k',
-                         help=( 'provision cloud instances, requies --cloud' ) )
-        ##
         opts.add_option( '--placement', type='choice',
                          choices=list( PLACEMENT.keys() ), default='block',
                          metavar='block|random',
                          help=( 'node placement for --cluster '
                                 '(experimental!) ' ) )
+
+        # == Distrinet ========================================================
+#        opts.add_option("-n", dest="n", default=4,
+#                          help="number of hosts to emulate", metavar="n")
+#        opts.add_option("-s", "--single", dest="single", default=False,
+#                          action="store_true", help="Should we run the experiment on one machine only", metavar="single")
+#        opts.add_option("--hadoop", dest="hadoop", default=False,
+#                          action="store_true", help="Should we run the Hadoop experiment", metavar="hadoop")
+#        opts.add_option("--iperf", dest="iperf", default=False,
+#                          action="store_true", help="Should we run the iperf experiment", metavar="iperf")
+        opts.add_option("-b","--bastion", dest="bastion",
+                          help="bsation node", metavar="bastion")
+        opts.add_option("-w","--workers", dest="workers",
+                          help="worker nodes (their LXC name)", metavar="workers") 
+        opts.add_option( '--mapper', type='choice',
+                         choices=list( MAPPER.keys() ), default='dummymapper',
+                         metavar='dummymapper',
+                         help=( 'node mapping for --workers '
+                                '(experimental!) ' ) )
+        # =====================================================================
+
 
         self.options, self.args = opts.parse_args()
 
@@ -361,6 +358,9 @@ class MininetRunner( object ):
             cleanup()
             exit()
 
+        if opts.workers:
+            workers = opts.workers.split( ',' )
+
         start = time.time()
 
         if not opts.controller:
@@ -384,6 +384,7 @@ class MininetRunner( object ):
         host = customClass( HOSTS, opts.host )
         controller = [ customClass( CONTROLLERS, c )
                        for c in opts.controller ]
+
         if opts.switch == 'user' and opts.link == 'default':
             debug( '*** Using TCULink with UserSwitch\n' )
             # Use link configured correctly for UserSwitch
@@ -409,56 +410,108 @@ class MininetRunner( object ):
             Net = partial( MininetCluster, servers=servers,
                            placement=PLACEMENT[ opts.placement ] )
             mininet.cli.CLI = ClusterCLI
-        elif opts.cloud:
-            from distrinet.cloud.lxc_container import (LxcNode)
-            from distrinet.cloud.cloudswitch import (LxcOVSSwitch)
-            from distrinet.cloud.cloudlink import (CloudLink)
-            from distrinet.distrinet import (Distrinet)
-            from distrinet.cli import (CLI as CloudCli)
+
+        if opts.workers:
+            from distrinet.cloud.lxc_container import LxcNode 
+            from distrinet.cloud.cloudswitch import LxcOVSSwitch 
+            from distrinet.cloud.cloudlink import CloudLink
+            from distrinet.distrinet import Distrinet
             warn( '*** WARNING: Experimental cloud mode!\n'
                   '*** Using LxcNode, LxcOVSSwitch, CloudLink\n' )
             host, switch, link = LxcNode, LxcOVSSwitch, CloudLink
-            master,args,kwargs = splitArgs(opts.cloud)
-            self.master = master
-            self.jump = None
 
-            # provision the cloud 
-            if opts.provision:
-                provision = customClass(PROVISION, opts.provision)()
-                self.user = "ubuntu"
-#                self.user = provision.user
-                self.master = provision.deploy()
-                print ("sleep")
-                time.sleep(45)
-                print ("slepts")
-#                self.master = "52.28.101.58"
-            # or use a jump node
-            elif opts.jump:
-                jump,args,kwargs = splitArgs(opts.jump)
-                self.user = kwargs.pop("user", "root")
-                self.jump = jump
-            else:
-                raise Exception("You must provide either a jump node or a provision method")
+            ##
+            from provision import Provision
+            conf = Provision.get_configurations()
+            ssh_conf = conf["ssh"]
+            pub_id = ssh_conf["pub_id"]
+            client_keys = ssh_conf["client_keys"]
+            user = ssh_conf["user"]
+            jump = ssh_conf.get("bastion", None)
 
-            # DSA - TODO - not really nice, need to clean that
-            from distrinet.cloud.sshutil import name2IP
-            name2IP.eyeball=self.master
-            name2IP.user=self.user
+            ##
+            master = workers[0]
 
-            Net = partial(Distrinet, build=False, jump=self.jump, master=self.master, mapper=None, user=self.user)
-            CLI = CloudCli
+            ##
+            adminIpBase='192.168.0.1/8'
+            waitConnected=False
+            build=False
 
-        print (opts.topo)
-        exit()
+            # mapping
+            def _rounRobin(topo, cluster):
+                i = 0
+                places = {}
+                nodes = topo.hosts() + topo.switches()
+                for node in nodes:
+                    places[node] = cluster[i%len(cluster)]
+                    i = i + 1
+                return places
+
+            places = _rounRobin(topo=topo, cluster=workers)
+            mapper = placement=MAPPER[ opts.mapper ](places=places)
+            print ("mapping:", mapper.places)
+           
+            sopts={"image":"switch","controller":"c0", 'pub_id':pub_id, "cpu":1, "memory":"2GB"}
+            hopts={"image":"ubuntu", 'pub_id':pub_id, "cpu":1, "memory":"2GB"}
+            lopts={"rate":1000,"bw":1000}
+
+            topo.hopts.update(hopts)
+            topo.sopts.update(sopts)
+            topo.lopts.update(lopts)
+
+
+            for n in topo.hosts():
+                infos = {}
+                infos.update(topo.nodeInfo(n))
+                infos.update(hopts)
+                topo.setNodeInfo(n, infos)
+
+            for n in topo.switches():
+                infos = {}
+                infos.update(topo.nodeInfo(n))
+                infos.update(sopts)
+                topo.setNodeInfo(n, infos)
+
+
+            for n in topo.hosts() + topo.switches():
+                print (topo.nodeInfo(n))
+
+            Net = partial( Distrinet ,
+                    link=link,
+                    adminIpBase=adminIpBase,
+                    build=build,
+                    jump=jump,
+                    master=master,
+                    mapper=mapper,
+                    user=user,
+                    client_keys=client_keys,
+                    waitConnected=waitConnected)
+            print("ICI", Net, controller, master, workers, topo, host)
+
         mn = Net( topo=topo,
-                  switch=switch, host=host, controller=controller, link=link,
+                  switch=switch, host=host,
+                  #controller=controller,
+                  link=link,
                   ipBase=opts.ipbase, inNamespace=opts.innamespace,
                   xterms=opts.xterms, autoSetMacs=opts.mac,
                   autoStaticArp=opts.arp, autoPinCpus=opts.pin,
                   listenPort=opts.listenport )
 
         if opts.ensure_value( 'nat', False ):
+            with open( '/etc/resolv.conf' ) as f:
+                if 'nameserver 127.' in f.read():
+                    warn( '*** Warning: loopback address in /etc/resolv.conf '
+                          'may break host DNS over NAT\n')
             mn.addNAT( *opts.nat_args, **opts.nat_kwargs ).configDefault()
+
+        if opts.workers:
+            from distrinet.cloud.assh import ASsh
+            masterSsh = ASsh(loop=mn.loop, host=master, username=user, bastion=jump, client_keys=client_keys)
+            masterSsh.connect()
+            masterSsh.waitConnected()
+            from distrinet.cloud.cloudcontroller import (LxcRemoteController, RyuNativeController, OnosNativeController)
+            mn.addController(name='c0', controller=RyuNativeController, ip="192.168.0.1", port=6633 , masterSsh=masterSsh)
+            print ("controller addred")
 
         # --custom files can set CLI or change mininet.cli.CLI
         CLI = mininet.cli.CLI if CLI is None else CLI
@@ -483,10 +536,6 @@ class MininetRunner( object ):
 
 
 if __name__ == "__main__":
-
-    MininetRunner()
-    exit()
-
     try:
         MininetRunner()
     except KeyboardInterrupt:
@@ -499,7 +548,6 @@ if __name__ == "__main__":
                      "Caught exception. Cleaning up...\n\n" +
                      "%s: %s\n" % ( type_.__name__, val_ ) +
                      "-"*80 + "\n" )
-        print (str(trace_))
         error( errorMsg )
         # Print stack trace to debug log
         import traceback
