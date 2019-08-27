@@ -185,7 +185,7 @@ class OnosNativeController( LxcRemoteController ):
 
     def start( self ):
         print ("start controller")
-        self.cmd("screen -d -m -S OnosCtroller /opt/onos-2.1.0/bin/onos-service start")
+#        self.cmd("screen -d -m -S OnosCtroller /opt/onos-2.1.0/bin/onos-service start")
         return
 
     def stop( self ):
