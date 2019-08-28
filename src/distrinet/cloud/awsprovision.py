@@ -132,7 +132,6 @@ class distrinetAWS(Provision):
             ec2client.delete_nat_gateway(NatGatewayId=nat)
         # wait that all the nat gateways are in deleted state
         with progressbar.ProgressBar(max_value=len(nat_ids), prefix="Deleting the nat gateway") as bar:
-            bar.update(0)
             while True:
                 nat_gateways = ec2client.describe_nat_gateways(Filters=[{"Name": "vpc-id", "Values": [vpc.id]}])[
                     "NatGateways"]
@@ -151,7 +150,6 @@ class distrinetAWS(Provision):
         for subnet in subnets:
             i += len(list(subnet.instances.all()))
         with progressbar.ProgressBar(max_value=i,prefix="Deleting the instances") as bar:
-            bar.update(0)
             while True:
                 subnets = vpc.subnets.all()
                 instances = []
