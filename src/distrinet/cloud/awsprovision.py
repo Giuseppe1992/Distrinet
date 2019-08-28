@@ -132,6 +132,7 @@ class distrinetAWS(Provision):
             ec2client.delete_nat_gateway(NatGatewayId=nat)
         # wait that all the nat gateways are in deleted state
         with progressbar.ProgressBar(max_value=len(nat_ids), prefix="Deleting the nat gateway") as bar:
+            bar.update(0)
             while True:
                 nat_gateways = ec2client.describe_nat_gateways(Filters=[{"Name": "vpc-id", "Values": [vpc.id]}])[
                     "NatGateways"]
@@ -150,6 +151,7 @@ class distrinetAWS(Provision):
         for subnet in subnets:
             i += len(list(subnet.instances.all()))
         with progressbar.ProgressBar(max_value=i,prefix="Deleting the instances") as bar:
+            bar.update(0)
             while True:
                 subnets = vpc.subnets.all()
                 instances = []
@@ -565,19 +567,13 @@ class distrinetAWS(Provision):
         responce = distrinetAWS.ec2Client.release_address(AllocationId=ElasticIpID)
         return responce
 
-
-    def deploy(self):
-        """
-        Deploy Amazon environment
-        :return: BastionHost Ip, masterHostPrivateIp, PrivateHosts Ip
-        """
+    def __aws_resource_check(self):
         if not self.isKeyNameExistingInRegion(KeyName=KEY_PAIR_NAME_BASTION, region=AWS_REGION):
             raise Exception(f"Key: {KEY_PAIR_NAME_BASTION} not found in region: {AWS_REGION}")
 
 
-        image_ami = self.getImageAMIFromRegion(Region=AWS_REGION,ImageName=IMAGE_NAME_AWS)
 
-        instance_needed = {self.bastionHostDescription["instanceType"] : 1}
+        instance_needed = {self.bastionHostDescription["instanceType"]: 1}
         for instance in self.workersHostsDescription:
             instanceType = instance["instanceType"]
             numberOfInstances = instance["numberOfInstances"]
@@ -587,8 +583,11 @@ class distrinetAWS(Provision):
                 instance_needed[instanceType] = numberOfInstances
 
         instance_needed = [(instanceType, instance_needed[instanceType]) for instanceType in instance_needed]
-        #raise an error if the resources in the region are not enough without starting to deploy
+
+        # raise an error if the resources in the region are not enough without starting to deploy
         self.CheckResources(VpcNeeded=1, ElasticIpNeeded=2, instancesNeeded=instance_needed)
+
+    def __aws_vpc__configuration(self):
         self.vpc = self.CreateVPC(VpcName=self.VPCName, addressPoolVPC=self.addressPoolVPC)
 
         vpcId = self.vpc.id
@@ -617,11 +616,15 @@ class distrinetAWS(Provision):
                                                routeTable=self.privateRouteTable)
 
         self.privateKey = self.createKeyPair(KeyName=KEY_PAIR_NAME_WORKERS)
-        privateKey = self.privateKey["KeyMaterial"]
 
+    def __aws_deploy(self):
+        image_ami = self.getImageAMIFromRegion(Region=AWS_REGION, ImageName=IMAGE_NAME_AWS)
+        self.__aws_resource_check()
+        self.__aws_vpc__configuration()
+
+        privateKey = self.privateKey["KeyMaterial"]
         publicSubnetId = self.publicSubnet.id
         privateSubnetId = self.privateSubnet.id
-
 
         self.bastionHostPublicIp = self.createElasticIp(Domain='vpc')
         bastionHostPublicIpId = self.bastionHostPublicIp['AllocationId']
@@ -652,6 +655,7 @@ class distrinetAWS(Provision):
             for instance in response['Instances']:
                 workerHostsId.append(instance['InstanceId'])
 
+        securityGroupId = self.securityGroup["GroupId"]
         self.modifyGroupId(instancesId=[bastionHostId], Groups=[securityGroupId])
         self.modifyGroupId(instancesId=workerHostsId, Groups=[securityGroupId])
         self.waitInstancesRunning(instancesIdList=[bastionHostId])
@@ -666,7 +670,14 @@ class distrinetAWS(Provision):
         self.waitNatGateWaysAvailable(NatGatewaysId=[natGateWayId])
         self.addRoute(routeTable=self.privateRouteTable, GatewayId=natGateWayId, DestinationCidrBlock="0.0.0.0/0")
         sleep(5)
+        return bastionHostPublicIp
 
+    def deploy(self):
+        """
+        Deploy Amazon environment
+        :return: BastionHost Ip, masterHostPrivateIp, PrivateHosts Ip
+        """
+        bastionHostPublicIp = self.__aws_deploy()
         sshRootSession = self.createSshSession(host=bastionHostPublicIp, username="root")
 
         masterHostPrivateIp = self.bastionHost['Instances'][0]['PrivateIpAddress']
@@ -716,7 +727,7 @@ if __name__ == '__main__':
                                                    {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 8}}]}
                                              ])
 
-    o.deploy()
+    #o.deploy()
 
     #input()
-    #distrinetAWS.removeVPC("vpc-07349fe9c490296e9")
+    distrinetAWS.removeVPC("vpc-0e603975c640e7778")
