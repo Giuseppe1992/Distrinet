@@ -57,7 +57,7 @@ class distrinetAWS(Provision):
         # TODO: find the best way to get this data directly from AWS
         default_max_vpcs = 5
         default_max_elastic_ip = 5
-        default_max_instances_per_type = 5
+        default_max_instances_per_type = 10
         default_total_max_instances = 20
         ############################################################
 
