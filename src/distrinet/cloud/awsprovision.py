@@ -5,6 +5,7 @@ import os
 import paramiko
 import uuid
 from botocore.exceptions import ClientError
+import progressbar
 
 conf = Provision.get_configurations()
 aws_conf = conf["aws"]
@@ -104,37 +105,91 @@ class distrinetAWS(Provision):
         Remove the vpc using boto3.resource('ec2')
         :param vpcId: Id of the Vpc
         :return: client response
-        Script used from https://gist.github.com/vernhart/c6a0fc94c0aeaebe84e5cd6f3dede4ce
+        Script adapted from https://gist.github.com/vernhart/c6a0fc94c0aeaebe84e5cd6f3dede4ce
+        TODO: Make it cleaner and more modular, seems to work now, but the code is terrible
 
         """
         vpcid = VpcId
         ec2 = distrinetAWS.ec2Resource
-        ec2client = ec2.meta.client
         vpc = ec2.Vpc(vpcid)
+        ec2client = ec2.meta.client
         # detach default dhcp_options if associated with the vpc
         dhcp_options_default = ec2.DhcpOptions('default')
         if dhcp_options_default:
             dhcp_options_default.associate_with_vpc(
                 VpcId=vpc.id
             )
-        # detach and delete all gateways associated with the vpc
-        for gw in vpc.internet_gateways.all():
-            vpc.detach_internet_gateway(InternetGatewayId=gw.id)
-            gw.delete()
-        # delete all route table associations
-        for rt in vpc.route_tables.all():
-            for rta in rt.associations:
-                if not rta.main:
-                    rta.delete()
+
         # delete any instances
         for subnet in vpc.subnets.all():
             for instance in subnet.instances.all():
                 instance.terminate()
+
+        # delete nat_gateways
+        nat_gateways = ec2client.describe_nat_gateways(Filters=[{"Name":"vpc-id", "Values": [vpc.id]}])["NatGateways"]
+        nat_ids = [nat['NatGatewayId']for nat in nat_gateways]
+        for nat in nat_ids:
+            ec2client.delete_nat_gateway(NatGatewayId=nat)
+        # wait that all the nat gateways are in deleted state
+        with progressbar.ProgressBar(max_value=len(nat_ids), prefix="Deleting the nat gateway") as bar:
+            while True:
+                nat_gateways = ec2client.describe_nat_gateways(Filters=[{"Name": "vpc-id", "Values": [vpc.id]}])[
+                    "NatGateways"]
+                if nat_gateways == []:
+                    break
+                status = tuple(set([nat["State"] for nat in nat_gateways]))
+                if status == ("deleted",):
+                    bar.update(len(nat_ids))
+                    break
+
+                sleep(2)
+
+        # wait that all the instances are deleted
+        subnets = vpc.subnets.all()
+        i = 0
+        for subnet in subnets:
+            i += len(list(subnet.instances.all()))
+        with progressbar.ProgressBar(max_value=i,prefix="Deleting the instances") as bar:
+            while True:
+                subnets = vpc.subnets.all()
+                instances = []
+                for subnet in subnets:
+                    instances += subnet.instances.all()
+                    bar.update(i-len(instances))
+                if not instances:
+                    bar.update(i)
+                    break
+                sleep(2)
+
+        # make sure that the elastic ip addresses are out not linked to the vpc
+        sleep(5)
+
+        # detach and delete all gateways associated with the vpc
+        for gw in vpc.internet_gateways.all():
+            # We need to remove the public address before removing the Internet GW
+            vpc.detach_internet_gateway(InternetGatewayId=gw.id)
+            gw.delete()
+        # delete all route table associations
+        route_tables = ec2client.describe_route_tables(Filters=[{"Name": "vpc-id", "Values": [vpc.id]}])["RouteTables"]
+        for rt in route_tables:
+            associations = rt['Associations']
+            if associations == []:
+                print(ec2client.delete_route_table(RouteTableId=rt['RouteTableId']))
+                continue
+
+            for association in associations:
+                if not association["Main"]:
+                    association_id = association['RouteTableAssociationId']
+                    ec2client.disassociate_route_table(AssociationId=association_id)
+            sleep(1)
+            if (False,) == tuple(set([association["Main"] for association in associations])):
+                print(ec2client.delete_route_table(RouteTableId=rt["RouteTableId"]))
+
         # delete our endpoints
         for ep in ec2client.describe_vpc_endpoints(
                 Filters=[{
                     'Name': 'vpc-id',
-                    'Values': [vpcid]
+                    'Values': [vpc.id]
                 }])['VpcEndpoints']:
             ec2client.delete_vpc_endpoints(VpcEndpointIds=[ep['VpcEndpointId']])
         # delete our security groups
@@ -145,7 +200,7 @@ class distrinetAWS(Provision):
         for vpcpeer in ec2client.describe_vpc_peering_connections(
                 Filters=[{
                     'Name': 'requester-vpc-info.vpc-id',
-                    'Values': [vpcid]
+                    'Values': [vpc.id]
                 }])['VpcPeeringConnections']:
             ec2.VpcPeeringConnection(vpcpeer['VpcPeeringConnectionId']).delete()
         # delete non-default network acls
@@ -158,7 +213,8 @@ class distrinetAWS(Provision):
                 interface.delete()
             subnet.delete()
         # finally, delete the vpc
-        return ec2client.delete_vpc(VpcId=vpcid)
+        sleep(1)
+        return ec2client.delete_vpc(VpcId=vpc.id)
 
     @staticmethod
     def getImageAMIFromRegion(Region, ImageName):
@@ -575,7 +631,6 @@ class distrinetAWS(Provision):
         self.natGateWayPublicIp = self.createElasticIp(Domain='vpc')
         natGateWayPublicIpId = self.natGateWayPublicIp["AllocationId"]
 
-
         self.natGateWay = self.createNatGateWay(SubnetId=publicSubnetId, AllocationId=natGateWayPublicIpId)
         natGateWayId = self.natGateWay["NatGateway"]["NatGatewayId"]
 
@@ -599,7 +654,6 @@ class distrinetAWS(Provision):
 
         self.modifyGroupId(instancesId=[bastionHostId], Groups=[securityGroupId])
         self.modifyGroupId(instancesId=workerHostsId, Groups=[securityGroupId])
-
         self.waitInstancesRunning(instancesIdList=[bastionHostId])
         self.assignElasticIp(ElasticIpId=bastionHostPublicIpId, InstanceId=bastionHostId)
         sleep(30)
@@ -657,12 +711,12 @@ if __name__ == '__main__':
                                                  {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 8}}
                                              ]
                                              },
-                     workersHostsDescription=[{"numberOfInstances": 10, 'instanceType': 't2.micro',
+                     workersHostsDescription=[{"numberOfInstances": 2, 'instanceType': 't3.2xlarge',
                                                "BlockDeviceMappings": [
                                                    {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 8}}]}
                                              ])
 
     o.deploy()
-    
+
     #input()
-    #distrinetAWS.removeVPC("vpc-07b8b8a1cd0bb4be0")
+    #distrinetAWS.removeVPC("vpc-07349fe9c490296e9")
