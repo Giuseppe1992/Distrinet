@@ -702,17 +702,6 @@ class distrinetAWS(Provision):
 if __name__ == '__main__':
     o = distrinetAWS(VPCName="DEMO-", addressPoolVPC="10.0.0.0/16", publicSubnetNetwork='10.0.0.0/24',
                      privateSubnetNetwork='10.0.1.0/24',
-                     TagSpecifications=[
-                         {
-                             "ResourceType": "instance",
-                             'Tags': [
-                                 {
-                                     'Key': 'Name',
-                                     'Value': 'Bastion'
-                                 },
-                             ]
-                         },
-                     ],
                      bastionHostDescription={'instanceType': 't3.2xlarge',
 
 
@@ -728,4 +717,4 @@ if __name__ == '__main__':
     #o.deploy()
 
     #input()
-    distrinetAWS.removeVPC("vpc-0e603975c640e7778")
+    #distrinetAWS.removeVPC("vpc-0e603975c640e7778")

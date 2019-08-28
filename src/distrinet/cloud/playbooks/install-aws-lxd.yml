@@ -29,10 +29,6 @@
       apt :
         name: ethtool
 
-    - name: install sqlite3
-      apt:
-        name: sqlite3
-
     - name: install ryu
       apt :
         name: python-ryu

@@ -13,7 +13,7 @@ KEY = 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDN+7brU3dYYrMLrjO3+MAO7xGQATwA47Ffz
 
 IMAGE = 'ubuntu1804-x64-python3'
 USERNAME = "root"
-SRC_PLAYBOOKS_DIR = "../../../../src/playbooks"
+SRC_PLAYBOOKS_DIR = "playbooks"
 DST_PLAYBOOKS_DIR = "/tmp/playbooks"
 
 
@@ -198,7 +198,7 @@ if __name__ == '__main__':
     with open("g5k_credentials.json", "r") as credentials_file:
         credentals_json = eval(credentials_file.read())
         username, password = credentals_json["username"], credentals_json["password"]
-    obj = g5k(user=username, password=password, Image=IMAGE, Key=KEY, Location='nancy', nodes=2, walltime="5:00",
+    obj = g5k(user=username, password=password, Image=IMAGE, Key=KEY, Location='nancy', nodes="2", walltime="5:00",
               cluster="grisou")
     r = obj.deploy()
     print(r)
