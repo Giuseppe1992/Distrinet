@@ -19,13 +19,13 @@ class basicprovision(Provision):
         self.workers = workers_ip
 
     def deploy(self):
-        sshMasterSession = self.createSshSession(host=Master, username=self.username)
+        sshMasterSession = self.createSshSession(host=self.master, username=self.username)
         self.setupMasterHost(SshSession=sshMasterSession)
         sleep(2)
-        self.setAnsibleHosts(SshSession=sshMasterSession, MasterHostIp=Master, WorkersList=Workers)
+        self.setAnsibleHosts(SshSession=sshMasterSession, MasterHostIp=self.master, WorkersList=self.workers)
         self.copyFilesInHost(SshSession=sshMasterSession, SrcDir=SRC_PLAYBOOKS_DIR, DstDir=DST_PLAYBOOKS_DIR)
         sleep(2)
         self.installEnvironment(SshSession=sshMasterSession, PlaybookPath=DST_PLAYBOOKS_DIR + "/install-lxd.yml")
         sleep(2)
-        self.configureLxd(SshSession=sshMasterSession, MasterPrivateIp=Master, PlaybookPath=DST_PLAYBOOKS_DIR)
+        self.configureLxd(SshSession=sshMasterSession, MasterPrivateIp=self.master, PlaybookPath=DST_PLAYBOOKS_DIR)
         return self.master, self.workers

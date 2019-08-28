@@ -127,3 +127,4 @@ dmypy.json
 # PyCharm directory
 .idea/
 conf/conf.yml
+src/distrinet/cloud/g5k_credentials.json
