@@ -119,6 +119,8 @@ from distrinet.cloud.cloudcontroller import (LxcRemoteController)
 import asyncio
 import time
 from threading import Thread
+
+from distrinet.cloud.assh import ASsh
 ##############################
 
 # Mininet version: should be consistent with README and LICENSE
@@ -138,7 +140,7 @@ class Distrinet( Mininet ):
                   adminIpBase='192.168.0.1/8',
                   autoSetMacs=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, waitConnectionTimeout=5, 
-                  jump=None, user="root", client_keys=None, master=None,
+                  jump=None, user="root", client_keys=None, master=None, pub_id=None,
                   **kwargs):
         """Create Mininet object.
            topo: Topo (topology) object or None
@@ -201,19 +203,27 @@ class Distrinet( Mininet ):
         self.controllers = []
         self.links = []
 
-        self.jump = jump
-        self.user = user
-        self.client_keys = client_keys
-        self.master = master
-
         self.loop = asyncio.get_event_loop()
-
         def runforever(loop):
             time.sleep(0.001)       ### DSA - WTF ?????????????
             loop.run_forever()
 
         self.thread = Thread(target=runforever, args=(self.loop,))
         self.thread.start()
+
+
+        self.jump = jump
+        self.user = user
+        self.pub_id = pub_id
+
+        self.client_keys = client_keys
+        self.master = master
+        print ("Connecting to master node")
+        self.masterSsh = ASsh(loop=self.loop, host=self.master, username=self.user, bastion=self.jump, client_keys=self.client_keys)
+        self.masterSsh.connect()
+        self.masterSsh.waitConnected()
+        print ("connected to master node")
+
 
 
         self.nameToNode = {}  # name to Node (Host/Switch) objects
@@ -316,13 +326,21 @@ class Distrinet( Mininet ):
 
     # DSA - OK
     def addController( self, name='c0', controller=None, **params ):
+        print (self.master, self.loop)
         """Add controller.
            controller: Controller class
            params: Parameters for the controller"""
         # Get controller class
+        params.update({'pub_id':self.pub_id})
         if not controller:
             controller = self.controller
-        controller_new = controller(name=name, **params)
+        controller_new = controller(name=name, 
+                    loop=self.loop,
+                    master=self.masterSsh,
+                    username=self.user,
+                    bastion=self.jump,
+                    client_keys=self.client_keys,
+                **params)
         self.controllers.append(controller_new)
         self.nameToNode[ name ] = controller_new
         
@@ -516,6 +534,14 @@ class Distrinet( Mininet ):
 
         info( '*** Creating network\n' )
 
+        bastion = self.jump
+        waitStart = False
+        _ip = "{}/{}".format(ipAdd(self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen), self.adminPrefixLen)
+        self.adminNextIP += 1
+        self.host.createMasterAdminNetwork(self.masterSsh, brname="admin-br", ip=_ip)
+        info (" admin network created on {}\n".format(self.master))
+
+
         assert (isinstance(self.controllers, list))
 
         if not self.controllers and self.controller:
@@ -531,25 +557,10 @@ class Distrinet( Mininet ):
                 else:
                     self.addController( 'c%d' % i, cls )
 
-
-        bastion = self.jump
-        waitStart = False
-
-        from assh import ASsh
+#        from assh import ASsh
         # prepare SSH connection to the master
-        from distrinet.cloud.assh import ASsh
 
         info( '*** Adding hosts:\n' )
-        self.masterSsh = ASsh(loop=self.loop, host=self.master, username=self.user, bastion=bastion, client_keys=self.client_keys)
-        masterSsh = self.masterSsh
-        masterSsh.connect()
-        masterSsh.waitConnected()
-        print ("connected to master node")
-        _ip = "{}/{}".format(ipAdd(self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen), self.adminPrefixLen)
-        self.adminNextIP += 1
-        self.host.createMasterAdminNetwork(masterSsh, brname="admin-br", ip=_ip)
-        print ("admin network created on master", _ip)
-
 
         # == Hosts ===========================================================
         for hostName in topo.hosts():
@@ -559,7 +570,7 @@ class Distrinet( Mininet ):
             self.addHost( name=hostName,
                     admin_ip= _ip,
                     loop=self.loop,
-                    master=masterSsh,
+                    master=self.masterSsh,
                     username=self.user,
                     bastion=bastion,
                     client_keys=self.client_keys,
@@ -574,7 +585,7 @@ class Distrinet( Mininet ):
             self.addSwitch( name=switchName,
                     admin_ip=_ip,
                     loop=self.loop,
-                    master=masterSsh,
+                    master=self.masterSsh,
                     username=self.user,
                     bastion=bastion,
                     client_keys=self.client_keys,
@@ -616,7 +627,7 @@ class Distrinet( Mininet ):
                 cmds = cmds + node.connectToAdminNetwork(master=node.master.host, target=node.target, link_id=CloudLink.newLinkId(), admin_br="admin-br", wait=False)
             if len (cmds) > 0:
                 cmd = ';'.join(cmds)
-                masterSsh.cmd(cmd) 
+                self.masterSsh.cmd(cmd) 
 
             for node in nodes:
                 node.configureContainer(wait=False)

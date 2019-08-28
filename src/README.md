@@ -22,10 +22,27 @@ To connect to an already started controller:
 --controller=lxcremote,ip=<ip>
 ```
 
-where `<ip>` is an address reachable on the admin network where an OpenFlow controller listens
+where
 
-## Example
+* `<ip>` is an address reachable on the admin network where an OpenFlow controller listens
 
 ```
-python3 dmn --workers="10.0.0.28,10.0.1.219,10.0.1.23" --topo=linear,4 --controller=lxcremote,ip=192.168.0.1 --test pingall
+--controller=onoslxc,ip=<ip>,admin_ip=<admin_ip>,target=<target_ip>
+```
+
+where
+
+* `<ip>` is an address reachable on the admin network where an OpenFlow controller listens
+* `<admin_ip>` is the admin IP address for the container
+* `<target_ip>` is the IP of the node where to deploy the container
+
+
+## Examples
+
+```
+python3 dmn --workers="10.0.0.200,10.0.1.31,10.0.1.76" --topo=tree,2 --controller=lxcremote,ip=192.168.0.1
+```
+
+```
+python3 dmn --workers="10.0.0.200,10.0.1.31,10.0.1.76" --topo=tree,2 --controller=onoslxc,ip=192.168.0.250,admin_ip=192.168.0.250,target=10.0.0.200
 ```

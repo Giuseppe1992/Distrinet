@@ -137,7 +137,7 @@ class ASsh(object):
                     while self.run:
                         await asyncio.sleep(1)
             except Exception as e:
-                print ("<<<<<<<<<<<<<<<<<<< connection ", host, port, " exception>>>>>>>>>>>>>>>>> {}".format(e))
+                print ("Error for {}@{} via {}:{}: {}".format(self.username, self.host, self.bastion, port, e))
 
     def waitConnected(self):
         """

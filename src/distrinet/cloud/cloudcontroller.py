@@ -2,14 +2,24 @@ from mininet.log import lg, LEVELS, info, debug, warn, error, output
 
 from distrinet.cloud.lxc_container import (LxcNode)
 
-class LxcController( LxcNode ):
-    """A Controller is a Node that is running (or has execed?) an
-       OpenFlow controller."""
-
-    def __init__( self, name, target=None, admin_ip=None, user=None, jump=None,
-                  command='controller',
+class LxcController ( LxcNode ):
+    def __init__( self, name,
+                  loop, master, admin_ip,
+                  inNamespace=False, command='controller',
                   cargs='-v ptcp:%d', cdir=None, ip="127.0.0.1",
-                  port=6653, protocol='tcp', **params):
+                  port=6653, protocol='tcp',
+                  target=None, ssh_port=22, username=None, pub_id=None,
+                  bastion=None, bastion_port=22, client_keys=None,
+                  waitStart=True,
+                  **params):
+        super(LxcController, self).__init__(name=name, loop=loop,
+                       admin_ip=admin_ip,
+                       master=master,
+                       target=target, port=ssh_port, username=username, pub_id=pub_id,
+                       bastion=bastion, bastion_port=bastion_port, client_keys=client_keys,
+                       waitStart=waitStart,
+                       **params)
+
         self.command = command
         self.cargs = cargs
         self.cdir = cdir
@@ -18,29 +28,12 @@ class LxcController( LxcNode ):
             ip, port = ip.split( ':' )
             port = int( port )
         self.ip = ip
-        self.ip = admin_ip          # DSA - to change to be IP
         self.port = port
-        self.protocol = protocol
-        super(LxcController, self).__init__( name, target=target, admin_ip=admin_ip, user=user, jump=jump, **params  )
-        self.checkListening()
+        self.protocol = protocol 
 
     def checkListening( self ):
-        "Make sure no controllers are running on our port"
-        # Verify that Telnet is installed first:
-        out, _err, returnCode = errRun( "which telnet" )
-        if 'telnet' not in out or returnCode != 0:
-            raise Exception( "Error running telnet to check for listening "
-                             "controllers; please check that it is "
-                             "installed." )
-        listening = self.cmd( "echo A | telnet -e A %s %d" %
-                              ( self.ip, self.port ) )
-        if 'Connected' in listening:
-            servers = self.cmd( 'netstat -natp' ).split( '\n' )
-            pstr = ':%d ' % self.port
-            clist = servers[ 0:1 ] + [ s for s in servers if pstr in s ]
-            raise Exception( "Please shut down the controller which is"
-                             " running on port %d:\n" % self.port +
-                             '\n'.join( clist ) )
+        """ PowerWagon DON'T CARE"""
+        pass
 
     def start( self ):
         """Start <controller> <args> on controller.
@@ -57,51 +50,59 @@ class LxcController( LxcNode ):
         "Stop controller."
         self.cmd( 'kill %' + self.command )
         self.cmd( 'wait %' + self.command )
-        super( LxcNode, self ).stop( *args, **kwargs )
+        super( LxcController, self ).stop( *args, **kwargs )
 
     def IP( self, intf=None ):
         "Return IP address of the Controller"
-##        if self.intfs:
-##            ip = Node.IP( self, intf )
-##        else:
-##            ip = self.ip
-##        return ip
-        return self.ip
+        return self.ip 
 
     def __repr__( self ):
         "More informative string representation"
         return '<%s %s: %s:%s pid=%s> ' % (
             self.__class__.__name__, self.name,
             self.IP(), self.port, self.pid )
-    
+
+    @classmethod
     def isAvailable( cls ):
+        "Is controller available?"
         return False
-##        "Is controller available?"
-##        return quietRun( 'which controller' )
 
 
-class LxcRyu( LxcController ):
-    "Controller to run Ryu application"
-    def __init__( self, name, target=None, admin_ip=None, user=None, jump=None, *ryuArgs, **kwargs ):
-        """Init.
-        name: name to give controller.
-        ryuArgs: arguments and modules to pass to Ryu"""
-        ryuCoreDir = '/usr/local/lib/python2.7/dist-packages/ryu/ryu/app/'
-        if not ryuArgs:
-            warn( 'warning: no Ryu modules specified; '
-                  'running simple_switch only\n' )
-            ryuArgs = [ ryuCoreDir + 'simple_switch.py' ]
-        elif type( ryuArgs ) not in ( list, tuple ):
-            ryuArgs = [ ryuArgs ]
+class OnosLxcController ( LxcController ):
+    def __init__( self, name,
+                  loop, admin_ip, master,
+                  image='ubuntu-onos-2.1.0',
+                  **params):
+        super(OnosLxcController, self).__init__(name=name, loop=loop, admin_ip=admin_ip, master=master, image=image, **params)
 
-        super(LxcRyu, self).__init__(name,
-                             target=target, admin_ip=admin_ip, user=user, jump=jump,
-                             command='ryu-manager',
-                             cargs='--ofp-tcp-listen-port %s ' +
-                             ' '.join( ryuArgs ),
-                             cdir=ryuCoreDir,
-                             **kwargs )
+    def start( self ):
+        """Start <controller> <args> on controller.
+           Log to /tmp/cN.log"""
+        cout = '/tmp/' + self.name + '.log'
+        if self.cdir is not None:
+            self.cmd( 'cd ' + self.cdir )
+        info ( "Starting Onos controller\n")
+        self.cmd("source ~/.bashrc; nohup /opt/onos-2.1.0/bin/onos-service start >& /tmp/controller.dat &")
+        import time
+        time.sleep(25)
+        cmds = ["/opt/onos-2.1.0/bin/onos-app 127.0.0.1 activate org.onosproject.openflow-base",
+                "/opt/onos-2.1.0/bin/onos-app 127.0.0.1 activate org.onosproject.openflow",
+                "/opt/onos-2.1.0/bin/onos-app 127.0.0.1 activate org.onosproject.openflow-message",
+                "/opt/onos-2.1.0/bin/onos-app 127.0.0.1 activate org.onosproject.ofagent",
+                "/opt/onos-2.1.0/bin/onos-app 127.0.0.1 activate org.onosproject.lldpprovider",
+                "/opt/onos-2.1.0/bin/onos-app 127.0.0.1 activate org.onosproject.faultmanagement",
+                "/opt/onos-2.1.0/bin/onos-app 127.0.0.1 activate org.onosproject.flowanalyzer",
+                "/opt/onos-2.1.0/bin/onos-app 127.0.0.1 activate org.onosproject.linkprops",
+                "/opt/onos-2.1.0/bin/onos-app 127.0.0.1 activate org.onosproject.fwd"]
+        self.cmd(";".join(cmds))
 
+        self.execed = False
+
+    def stop( self, *args, **kwargs ):
+        self.cmd("/opt/onos-2.1.0/bin/onos-service stop") 
+###        super( OnosLxcController, self ).stop( *args, **kwargs )
+
+# TODO - DSA inherit from LxcController
 class LxcRemoteController( object ):
     "Controller running outside of Mininet's control."
 
@@ -178,47 +179,4 @@ class LxcRemoteController( object ):
 
     def isAvailable( cls ):
         return True
-
-from distrinet.cloud.assh import ASsh
-class NativeController( LxcRemoteController ):
-    def __init__( self, name, masterSsh, ip='127.0.0.1',
-                  port=None, **kwargs):
-        """Init.
-           name: name to give controller
-           ip: the IP address where the remote controller is
-           listening
-           port: the port where the remote controller is listening"""
-        self.masterSsh = masterSsh
-        super(NativeController, self).__init__(name=name, ip=ip, port=port, **kwargs)
-
-
-class OnosNativeController( NativeController ):
-    "Controller running outside of Mininet's control."
-
-    def start( self ):
-        print ("start controller")
-#        self.cmd("screen -d -m -S OnosCtroller /opt/onos-2.1.0/bin/onos-service start")
-        return
-
-    def stop( self ):
-        self.cmd('/opt/onos-2.1.0/bin/onos-service stop')
-        return
-
-
-
-class RyuNativeController( NativeController ):
-    "Controller running outside of Mininet's control."
-
-    def start( self ):
-        "Overridden to do nothing."
-        print ("start controller")
-        self.cmd("screen -d -m -S RyuController /usr/bin/ryu-manager --verbose /usr/lib/python2.7/dist-packages/ryu/app/simple_switch_13.py")
-        return
-
-    def stop( self ):
-        "Overridden to do nothing."
-        print ("stop controller")
-        self.cmd("killall ryu-manager")
-        return
-
 

@@ -49,6 +49,12 @@ from mininet.examples.clustercli import ClusterCLI
 PLACEMENT = { 'block': SwitchBinPlacer, 'random': RandomPlacer }
 
 # ==
+from distrinet.cloud.lxc_container import ( LxcNode )
+from distrinet.cloud.cloudswitch import LxcOVSSwitch 
+from distrinet.cloud.cloudlink import CloudLink
+from distrinet.distrinet import Distrinet
+from distrinet.cloud.cloudcontroller import (LxcRemoteController, OnosLxcController)
+
 from distrinet.dummymapper import DummyMapper
 MAPPER = { 'dummymapper': DummyMapper }
 from distrinet.topodc import (DumbbellTopo)
@@ -57,7 +63,6 @@ from distrinet.cloud.awsprovision import (distrinetAWS)
 PROVISIONDEF = 'aws'
 PROVISION = { 'aws': distrinetAWS }
 
-from distrinet.cloud.cloudcontroller import (LxcRemoteController)
 # =============================================================================
 
 # built in topologies, created only when run
@@ -91,6 +96,7 @@ CONTROLLERS = { 'ref': Controller,
                 'nox': NOX,
                 'remote': RemoteController,
                 'lxcremote': LxcRemoteController,
+                'onoslxc': OnosLxcController,
                 'ryu': Ryu,
                 'default': DefaultController,  # Note: overridden below
                 'none': NullController }
@@ -469,10 +475,6 @@ class MininetRunner( object ):
 
         if opts.provision or opts.workers:
             print ("YOOOOOOOO", jump, master, workers)
-            from distrinet.cloud.lxc_container import LxcNode 
-            from distrinet.cloud.cloudswitch import LxcOVSSwitch 
-            from distrinet.cloud.cloudlink import CloudLink
-            from distrinet.distrinet import Distrinet
             warn( '*** WARNING: Experimental cloud mode!\n'
                   '*** Using LxcNode, LxcOVSSwitch, CloudLink\n' )
             host, switch, link = LxcNode, LxcOVSSwitch, CloudLink
@@ -525,7 +527,7 @@ class MininetRunner( object ):
                     master=master,
                     mapper=mapper,
                     user=user,
-                    client_keys=client_keys,
+                    client_keys=client_keys, pub_id=pub_id,
                     waitConnected=waitConnected)
             print("ICI", Net, controller, master, workers, topo, host)
 
