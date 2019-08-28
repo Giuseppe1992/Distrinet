@@ -1033,7 +1033,7 @@ class Distrinet( Mininet ):
             raise Exception( 'Unexpected l4 type: %s' % l4Type )
         if fmt:
             iperfArgs += '-f %s ' % fmt
-        server.sendCmd( iperfArgs + '-s' )
+        server.cmd( iperfArgs + '-s -D' )
         print ("Server running:", server, "(",server.IP(),")", ":",port,". client", client)
         if l4Type == 'TCP':
             if not waitListening( client, server.IP(), port ):
@@ -1047,6 +1047,7 @@ class Distrinet( Mininet ):
 #        # for TCP, there are two of them because of waitListening
 #        count = 2 if l4Type == 'TCP' else 1
 #        while len( re.findall( '/sec', servout ) ) < count:
+#            print (servout, "XXXXXXXXXXXXXXXXXXXXXXXXXXX")
 #            servout += server.monitor( timeoutms=5000 )
 #        server.sendInt()
 #        servout += server.waitOutput()

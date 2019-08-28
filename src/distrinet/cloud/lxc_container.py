@@ -695,8 +695,10 @@ class LxcNode (Node):
     # XXX - TODO - OK
     def sendInt( self, intr=chr( 3 ) ):
         "Interrupt running command."
-###        debug( 'sendInt: writing chr(%d)\n' % ord( intr ) )
-        self.shell.send_signal(intr)
+        print ("                    sendInt")
+        debug( 'sendInt: writing chr(%d)\n' % ord( intr ) )
+#        self.shell.send_signal(intr)
+        self.write( intr )
 
     ## TODO - XXX - OK
     ## Have to be able to deal with the PID
@@ -708,7 +710,7 @@ class LxcNode (Node):
 #        ready = self.waitReadable( timeoutms )
 #        if not ready:
 #            return ''
-        data = self.read( 1024 )
+        data = self.read( 1 )
 
         # Look for sentinel/EOF
         if len( data ) > 0 and data[ -1 ] == chr( 127 ):
