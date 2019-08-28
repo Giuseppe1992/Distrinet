@@ -529,7 +529,6 @@ class MininetRunner( object ):
                     user=user,
                     client_keys=client_keys, pub_id=pub_id,
                     waitConnected=waitConnected)
-            print("ICI", Net, controller, master, workers, topo, host)
 
         mn = Net( topo=topo,
                   switch=switch, host=host,

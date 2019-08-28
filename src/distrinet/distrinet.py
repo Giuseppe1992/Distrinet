@@ -619,7 +619,7 @@ class Distrinet( Mininet ):
                 node.addContainerInterface(intfName="admin", brname="admin-br", wait=False)
 
             for node in nodes:
-                node.targetSsh.waitOutput()
+                node.targetSshWaitOutput()
                 print ("admin interface created on", node.name)
 
             cmds = []
@@ -632,7 +632,7 @@ class Distrinet( Mininet ):
             for node in nodes:
                 node.configureContainer(wait=False)
             for node in nodes:
-                node.targetSsh.waitOutput()
+                node.targetSshWaitOutput()
 
             for node in nodes:
                 print ("connecting", node.name)
@@ -758,12 +758,7 @@ class Distrinet( Mininet ):
 
 
     def stop( self ):
-        "Stop the controller(s), switches and hosts"
-        info( '*** Stopping %i controllers\n' % len( self.controllers ) )
-        for controller in self.controllers:
-            info( controller.name + ' ' )
-            controller.stop()
-        info( '\n' )
+        "Stop the switches, hosts and controller(s) "
         if self.terms:
             info( '*** Stopping %i terms\n' % len( self.terms ) )
             self.stopXterms()
@@ -794,12 +789,18 @@ class Distrinet( Mininet ):
         for host in self.hosts:
             info( host.name + ' ' )
             host.terminate()
-        
+
+        info( '*** Stopping %i controllers\n' % len( self.controllers ) )
+        for controller in self.controllers:
+            info( controller.name + ' ' )
+            controller.stop()
+        info( '\n' )
+       
         info( '*** cleaning master\n' )
         # XXX DSA need to find something nicer
-        for node in self.hosts + self.switches:
+        for node in self.hosts + self.switches + self.controllers:
             print ("wait ", node)
-            node.targetSsh.waitOutput()
+            node.targetSshWaitOutput()
             for device in node.devicesMaster:
                 print ("delete device {} on master".format(device))
                 self.masterSsh.cmd("ip link delete {}".format(device))
