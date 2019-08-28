@@ -27,7 +27,7 @@ setup(
     author='Giuseppe Di Lena',
     author_email='giuseppedilena92@gmail.com',
     description='Distrinet v.1.1',
-    data_files= [(".distrinet",["conf/conf.yml"])],
+    data_files= [(".distrinet", ["conf/conf.yml"])],
     entry_points={
         'console_scripts': ['dmn=src.dmn:main']},
     include_package_data = True,

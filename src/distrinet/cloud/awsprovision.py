@@ -76,10 +76,11 @@ class distrinetAWS(Provision):
             instances = reservation["Instances"]
             for instance in instances:
                 instance_type = instance['InstanceType']
-                if instance_type in usedInstances.keys():
-                    usedInstances[instance_type] += 1
-                else:
-                    usedInstances[instance_type] = 1
+                if instance["State"]["Name"] == "running":
+                    if instance_type in usedInstances.keys():
+                        usedInstances[instance_type] += 1
+                    else:
+                        usedInstances[instance_type] = 1
 
         total_requested = sum([n for _, n in instancesNeeded])
         if sum(usedInstances.values()) + total_requested > default_total_max_instances:
@@ -532,7 +533,6 @@ class distrinetAWS(Provision):
         instance_needed = [(instanceType, instance_needed[instanceType]) for instanceType in instance_needed]
         #raise an error if the resources in the region are not enough without starting to deploy
         self.CheckResources(VpcNeeded=1, ElasticIpNeeded=2, instancesNeeded=instance_needed)
-
         self.vpc = self.CreateVPC(VpcName=self.VPCName, addressPoolVPC=self.addressPoolVPC)
 
         vpcId = self.vpc.id
@@ -657,7 +657,7 @@ if __name__ == '__main__':
                                                  {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 8}}
                                              ]
                                              },
-                     workersHostsDescription=[{"numberOfInstances": 1, 'instanceType': 't3.2xlarge',
+                     workersHostsDescription=[{"numberOfInstances": 10, 'instanceType': 't2.micro',
                                                "BlockDeviceMappings": [
                                                    {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 8}}]}
                                              ])

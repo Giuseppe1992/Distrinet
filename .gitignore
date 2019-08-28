@@ -126,3 +126,4 @@ dmypy.json
 .pyre/
 # PyCharm directory
 .idea/
+conf/conf.yml
