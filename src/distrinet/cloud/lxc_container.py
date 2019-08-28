@@ -692,13 +692,19 @@ class LxcNode (Node):
         self.lastPid = None
         self.waiting = True
 
+    # XXX - DSA - quick hack to deal with OpenSSH bug regarding signals...
+    async def _sendInt(self):
+        await self.ssh.conn.run("killall -g --signal INT bash")
+
     # XXX - TODO - OK
     def sendInt( self, intr=chr( 3 ) ):
         "Interrupt running command."
-        print ("                    sendInt")
         debug( 'sendInt: writing chr(%d)\n' % ord( intr ) )
 #        self.shell.send_signal(intr)
-        self.write( intr )
+        task = self.loop.create_task(self._sendInt())
+        while not task.done():
+            time.sleep(0.0001)
+        return task.result()
 
     ## TODO - XXX - OK
     ## Have to be able to deal with the PID
@@ -710,7 +716,7 @@ class LxcNode (Node):
 #        ready = self.waitReadable( timeoutms )
 #        if not ready:
 #            return ''
-        data = self.read( 1 )
+        data = self.read( 1024 )
 
         # Look for sentinel/EOF
         if len( data ) > 0 and data[ -1 ] == chr( 127 ):

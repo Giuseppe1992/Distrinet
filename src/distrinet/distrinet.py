@@ -1033,7 +1033,7 @@ class Distrinet( Mininet ):
             raise Exception( 'Unexpected l4 type: %s' % l4Type )
         if fmt:
             iperfArgs += '-f %s ' % fmt
-        server.cmd( iperfArgs + '-s -D' )
+        server.sendCmd( iperfArgs + '-s ' )
         print ("Server running:", server, "(",server.IP(),")", ":",port,". client", client)
         if l4Type == 'TCP':
             if not waitListening( client, server.IP(), port ):
@@ -1042,18 +1042,20 @@ class Distrinet( Mininet ):
         cliout = client.cmd( iperfArgs + '-t %d -c ' % seconds +
                              server.IP() + ' ' + bwArgs )
         debug( 'Client output: %s\n' % cliout )
-#        servout = ''
-#        # We want the last *b/sec from the iperf server output
-#        # for TCP, there are two of them because of waitListening
-#        count = 2 if l4Type == 'TCP' else 1
-#        while len( re.findall( '/sec', servout ) ) < count:
-#            print (servout, "XXXXXXXXXXXXXXXXXXXXXXXXXXX")
-#            servout += server.monitor( timeoutms=5000 )
-#        server.sendInt()
-#        servout += server.waitOutput()
-#        debug( 'Server output: %s\n' % servout )
-#        result = [ self._parseIperf( servout ), self._parseIperf( cliout ) ]
-        result = [ self._parseIperf( cliout ) ]
+        servout = ''
+        # We want the last *b/sec from the iperf server output
+        # for TCP, there are two of them because of waitListening
+        count = 2 if l4Type == 'TCP' else 1
+        server.sendInt()
+        print ("sendInt sent too early")
+        while len( re.findall( '/sec', servout ) ) < count:
+            print (servout, "XXXXXXXXXXXXXXXXXXXXXXXXXXX")
+            servout += server.monitor( timeoutms=5000 )
+### DSA SHOULD BE HERE        server.sendInt()
+        servout += server.waitOutput()
+        debug( 'Server output: %s\n' % servout )
+        result = [ self._parseIperf( servout ), self._parseIperf( cliout ) ]
+#        result = [ self._parseIperf( cliout ) ]
         if l4Type == 'UDP':
             result.insert( 0, udpBw )
         output( '*** Results: %s\n' % result )
