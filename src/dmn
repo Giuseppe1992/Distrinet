@@ -331,6 +331,8 @@ class MininetRunner( object ):
                          metavar='dummymapper',
                          help=( 'node mapping for --workers '
                                 '(experimental!) ' ) )
+        opts.add_option("--bunga", dest="bunga",
+                          help="VPC ID", metavar="bunga")
         addDictOption( opts, PROVISION, None, 'provision' )
 #        opts.add_option( '--provision', type='choice',
 #                         choices=list( PROVISION.keys() ), default='aws',
@@ -377,6 +379,11 @@ class MininetRunner( object ):
             cleanup()
             exit()
 
+        if opts.bunga:
+            warn(" ** experimental bunga! \n")
+            distrinetAWS.removeVPC(VpcId=opts.bunga) 
+            warn(" That bunga made Pepe happy \n")
+            exit()
 
         start = time.time()
 
