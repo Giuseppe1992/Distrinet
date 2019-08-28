@@ -100,7 +100,7 @@ class OnosLxcController ( LxcController ):
 
     def stop( self, *args, **kwargs ):
         self.cmd("/opt/onos-2.1.0/bin/onos-service stop") 
-###        super( OnosLxcController, self ).stop( *args, **kwargs )
+        super( OnosLxcController, self ).stop( *args, **kwargs )
 
 # TODO - DSA inherit from LxcController
 class LxcRemoteController( object ):
@@ -124,11 +124,18 @@ class LxcRemoteController( object ):
         self.checkListening()
         self.waiting = False
 
+        # XXX - DSA beurk
+        self.devicesMaster = []
+
     def start( self ):
         "Overridden to do nothing."
         return
 
     def stop( self ):
+        "Overridden to do nothing."
+        return
+
+    def terminate( self ):
         "Overridden to do nothing."
         return
 
@@ -180,3 +187,5 @@ class LxcRemoteController( object ):
     def isAvailable( cls ):
         return True
 
+    def targetSshWaitOutput(self):
+        pass

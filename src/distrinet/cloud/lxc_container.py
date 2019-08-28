@@ -428,8 +428,15 @@ class LxcNode (Node):
         cmd = ";".join(cmds)
         self.targetSsh.sendCmd(cmd)
 
+    def targetSshWaitOutput(self):
+        """
+        Wait for output on targetSsh
+        """
+        if self.targetSsh is not None:
+            self.targetSsh.waitOutput()
+
     def waitCreated(self):
-        self.targetSsh.waitOutput()
+        self.targetSshWaitOutput()
         print ("\tcontainer created")
 #        self.configureContainer()
 #        print ("master configured")
