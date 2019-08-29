@@ -63,6 +63,7 @@ from distrinet.cloud.awsprovision import (distrinetAWS)
 PROVISIONDEF = 'aws'
 PROVISION = { 'aws': distrinetAWS }
 
+PREBUILD = []
 # =============================================================================
 
 # built in topologies, created only when run
@@ -499,25 +500,8 @@ class MininetRunner( object ):
             mapper = placement=MAPPER[ opts.mapper ](places=places)
             print ("mapping:", mapper.places)
 
-
-            ## 
-            sopts={"image":"switch","controller":"c0", 'pub_id':pub_id, "cpu":4, "memory":"2GB"}
-            hopts={"image":"ubuntu", 'pub_id':pub_id, "cpu":2, "memory":"4GB"}
-            lopts={"rate":1000,"bw":1000}
-
-            topo.hopts.update(hopts)
-            topo.sopts.update(sopts)
-            topo.lopts.update(lopts)
-            for n in topo.hosts():
-                infos = {}
-                infos.update(topo.nodeInfo(n))
-                infos.update(hopts)
-                topo.setNodeInfo(n, infos)
-            for n in topo.switches():
-                infos = {}
-                infos.update(topo.nodeInfo(n))
-                infos.update(sopts)
-                topo.setNodeInfo(n, infos)
+            for x in PREBUILD:
+                x(topo=topo)
 
             ## 
             Net = partial( Distrinet ,
