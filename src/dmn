@@ -553,7 +553,7 @@ class MininetRunner( object ):
                 cmds = []
                 cmds.append("sysctl -w net.ipv4.ip_forward=1")
                 for pf in port_forwarding:
-                    cmds.append("iptables --table nat --append PREROUTING --protocol {} --dport {} --jump DNAT --to-destination {}:{}".format(pf['proto'], pf['local'], pf['ip'], pf['remote']))
+                    cmds.append("iptables --table nat -A PREROUTING --protocol {} --dport {} --jump DNAT --to-destination {}:{}".format(pf['proto'], pf['local'], pf['ip'], pf['remote']))
                 cmds.append("iptables -t nat -A POSTROUTING -j MASQUERADE")
                 mn.masterSsh.cmd(";".join(cmds))
 
@@ -574,6 +574,17 @@ class MininetRunner( object ):
 
         if opts.post:
             CLI( mn, script=opts.post )
+
+        if opts.provision or opts.workers:
+            # port forwarding
+            if 'port_forwarding' in locals():
+                cmds = []
+                for pf in port_forwarding:
+                    cmds.append("iptables --table nat -D PREROUTING --protocol {} --dport {} --jump DNAT --to-destination {}:{}".format(pf['proto'], pf['local'], pf['ip'], pf['remote']))
+                cmds.append("iptables -t nat -D POSTROUTING -j MASQUERADE")
+                mn.masterSsh.cmd(";".join(cmds))
+
+
 
         mn.stop()
 
