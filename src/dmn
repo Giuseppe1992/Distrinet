@@ -436,6 +436,9 @@ class MininetRunner( object ):
             client_keys = ssh_conf["client_keys"]
             user = ssh_conf["user"]
             jump = ssh_conf.get("bastion", None)
+           
+            if 'port_forwarding' in conf:
+                port_forwarding = conf["port_forwarding"]
 
         if opts.bastion:
             jump = opts.bastion
@@ -542,15 +545,17 @@ class MininetRunner( object ):
                           'may break host DNS over NAT\n')
             mn.addNAT( *opts.nat_args, **opts.nat_kwargs ).configDefault()
 
+        if opts.provision or opts.workers:
+            # port forwarding
+            if 'port_forwarding' in locals():
+                cmds = []
+                cmds.append("sysctl -w net.ipv4.ip_forward=1")
+                for pf in port_forwarding:
+                    cmds.append("iptables --table nat --append PREROUTING --protocol {} --dport {} --jump DNAT --to-destination {}:{}".format(pf['proto'], pf['local'], pf['ip'], pf['remote']))
+                cmds.append("iptables -t nat -A POSTROUTING -j MASQUERADE")
+                mn.masterSsh.cmd(";".join(cmds))
 
-#        if opts.workers or opts.provision:
-#            from distrinet.cloud.assh import ASsh
-#            masterSsh = ASsh(loop=mn.loop, host=master, username=user, bastion=jump, client_keys=client_keys)
-#            masterSsh.connect()
-#            masterSsh.waitConnected()
-#            from distrinet.cloud.cloudcontroller import (LxcRemoteController, RyuNativeController, OnosNativeController)
-#            mn.addController(name='c0', controller=RyuNativeController, ip="192.168.0.1", port=6633 , masterSsh=masterSsh)
-#            print ("controller added")
+
 
         # --custom files can set CLI or change mininet.cli.CLI
         CLI = mininet.cli.CLI if CLI is None else CLI

@@ -8,10 +8,11 @@ python3 dmn --provision=aws
 
 ## Using running cluster
 
-Specify the bastion address in the `ssh` section of the `~/.distrinet/conf.yml` file
+Specify the bastion address in the `ssh` section of the `~/.distrinet/conf.yml`
+file or using the `--bastion` option:
 
 ```
-python3 dmn --workers="<ip1>,<ip2>,...,<ipn>"
+python3 dmn [--bastion <bastion_ip>] --workers="<ip1>,<ip2>,...,<ipn>"
 ```
 
 ## Note
@@ -36,6 +37,19 @@ where
 * `<admin_ip>` is the admin IP address for the container
 * `<target_ip>` is the IP of the node where to deploy the container
 
+
+# Port forwarding
+
+To forward ports from bastion to an emulated machine, add an entry in the
+`port_forwarding` section of the `~/.distrinet/conf.yml` file.
+
+```
+port_forwarding:
+  - local: 8181
+    proto: 'tcp'
+    ip: '192.168.0.250'
+    remote: 8181
+```
 
 ## Examples
 

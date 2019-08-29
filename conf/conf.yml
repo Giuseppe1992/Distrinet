@@ -6,6 +6,12 @@ ssh:
   client_keys: ["/Users/giuseppe/.ssh/id_rsa"]
   bastion: "Bastion host IP 'xxx.xxx.xxx.xxx'"
 
+port_forwarding:
+  - local: 8181
+    proto: 'tcp'
+    ip: '192.168.0.250'
+    remote: 8181
+
 aws:
   region: "eu-central-1"
   user: "ubuntu"
