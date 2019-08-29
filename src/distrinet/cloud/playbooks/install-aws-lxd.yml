@@ -6,13 +6,13 @@
 
     - name   : Download switch
       get_url:
-        url : http://www-sop.inria.fr/members/Damien.Saucez/images/switch.tar.gz
+        url : http://18.195.229.56:8000/switch.tar.gz
         dest: ~/switch.tar.gz
         mode: 0666
 
     - name   : Download ubuntu18:04
       get_url:
-        url : http://www-sop.inria.fr/members/Damien.Saucez/images/ubuntu.tar.gz
+        url : http://18.195.229.56:8000/ubuntu.tar.gz
         dest: ~/ubuntu.tar.gz
         mode: 0666
 
