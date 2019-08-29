@@ -314,14 +314,6 @@ class MininetRunner( object ):
                                 '(experimental!) ' ) )
 
         # == Distrinet ========================================================
-#        opts.add_option("-n", dest="n", default=4,
-#                          help="number of hosts to emulate", metavar="n")
-#        opts.add_option("-s", "--single", dest="single", default=False,
-#                          action="store_true", help="Should we run the experiment on one machine only", metavar="single")
-#        opts.add_option("--hadoop", dest="hadoop", default=False,
-#                          action="store_true", help="Should we run the Hadoop experiment", metavar="hadoop")
-#        opts.add_option("--iperf", dest="iperf", default=False,
-#                          action="store_true", help="Should we run the iperf experiment", metavar="iperf")
         opts.add_option("-b","--bastion", dest="bastion",
                           help="bsation node", metavar="bastion")
         opts.add_option("-w","--workers", dest="workers",
@@ -334,11 +326,6 @@ class MininetRunner( object ):
         opts.add_option("--bunga", dest="bunga",
                           help="VPC ID", metavar="bunga")
         addDictOption( opts, PROVISION, None, 'provision' )
-#        opts.add_option( '--provision', type='choice',
-#                         choices=list( PROVISION.keys() ), default='aws',
-#                         metavar='aws',
-#                         help=( 'deployment to the cloud '
-#                                '(experimental!) ' ) )
         # =====================================================================
 
 
@@ -450,6 +437,8 @@ class MininetRunner( object ):
             user = ssh_conf["user"]
             jump = ssh_conf.get("bastion", None)
 
+        if opts.bastion:
+            jump = opts.bastion
 
         # Provision the cloud
         if opts.provision:
@@ -507,8 +496,8 @@ class MininetRunner( object ):
 
 
             ## 
-            sopts={"image":"switch","controller":"c0", 'pub_id':pub_id, "cpu":1, "memory":"2GB"}
-            hopts={"image":"ubuntu", 'pub_id':pub_id, "cpu":1, "memory":"2GB"}
+            sopts={"image":"switch","controller":"c0", 'pub_id':pub_id, "cpu":4, "memory":"2GB"}
+            hopts={"image":"ubuntu", 'pub_id':pub_id, "cpu":2, "memory":"4GB"}
             lopts={"rate":1000,"bw":1000}
 
             topo.hopts.update(hopts)
