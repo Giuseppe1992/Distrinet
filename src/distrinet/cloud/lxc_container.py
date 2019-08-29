@@ -593,10 +593,10 @@ class LxcNode (Node):
 
     # XXX - TODO - OK
     # XXX DSA - ATTENTION ignores maxbytes
-    def read( self, maxbytes=1024 ):
+    def read( self, maxbytes=1024, timeout=None ):
         """Buffered read from node, potentially blocking.
            maxbytes: maximum number of bytes to return"""
-        task = self.loop.create_task(self._read(maxbytes=maxbytes))
+        task = self.loop.create_task(self._read(maxbytes=maxbytes, timeout=timeout))
         while not task.done():
             time.sleep(0.0001)
         return task.result()
@@ -716,7 +716,8 @@ class LxcNode (Node):
 #        ready = self.waitReadable( timeoutms )
 #        if not ready:
 #            return ''
-        data = self.read( 1024 )
+        timeout = timeoutms/1000.0 if timeoutms is not None else None
+        data = self.read( 1024, timeout=timeout )
 
         # Look for sentinel/EOF
         if len( data ) > 0 and data[ -1 ] == chr( 127 ):
@@ -787,9 +788,20 @@ class LxcNode (Node):
    # =========================================================================
 
     # == Time for coroutines black magic ======================================
-
-    async def _read(self, maxbytes=1024):
-        return await self.stdout.readuntil(separator='\x7f')
+    # TODO DSA make it cleaner, but asyncssh read works with EOF only...
+    async def _read(self, maxbytes=1024, timeout=None):
+        r = ''
+        while maxbytes > 0:
+            try:
+                c = await asyncio.wait_for(self.stdout.read(n=1), timeout=5.0)
+                r = r + c
+                if c == '\x7f':
+                    return r
+            except asyncio.TimeoutError:
+                return r
+            maxbytes -= 1
+        return r
+#        return await self.stdout.readuntil(separator='\x7f')
 
     # XXX - OK
     async def _pexec(self, *args, **kwargs):
