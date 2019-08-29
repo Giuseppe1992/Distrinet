@@ -1,4 +1,4 @@
-from provision import Provision
+from distrinet.cloud.provision import Provision
 import requests
 import base64
 import json

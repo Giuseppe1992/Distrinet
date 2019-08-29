@@ -429,7 +429,7 @@ class MininetRunner( object ):
 
         # load default configuration
         if opts.provision or opts.workers:
-            from provision import Provision
+            from distrinet.cloud.provision import Provision
             conf = Provision.get_configurations()
             ssh_conf = conf["ssh"]
             pub_id = ssh_conf["pub_id"]
