@@ -1,10 +1,10 @@
 ---
 
 ssh:
-  pub_id: "ssh-rsa AAtJippVLt5bTPSQq6LYlEN8V16SRF9oF93X2nTKGjyZ3zicTCFn6BjGm8pGOZMXGMd23KsAmSyBtZiupDf71IRk0m3H0uua1EoeBzzKckoWYkCQX1WIiR2Jm4TAHDuDismBtL07Cz3JKvl0yQVHSkJ2zrCpyZUFo73euVU584GScqGng6aQzuGn0JVWFmf5Q71vO9Avuau2EfP0ebDHSuoePmjLv8TDHu46KaLVRHVEZOIF5vRc7HEltRdgm8qR8rlJKuXLRFD3zPSr5bLVKa6UmygSH7MMBQ5rlYDKSUJc4PrjIRuhvTdkg2rbYFQ5GDezdPIGEybWS022deY3hbaSYc8XUqPxMpCrcjMDwdfqAq8MZdsp user@example.org"
-  user: "login"
-  client_keys: ["/home/user/.ssh/id_rsa"]
-  bastion: "bastion.example.org"
+  pub_id: "YOUR PUBLIC ID"
+  user: "root"
+  client_keys: ["/Users/giuseppe/.ssh/id_rsa"]
+  bastion: "Bastion host IP 'xxx.xxx.xxx.xxx'"
 
 aws:
   region: "eu-central-1"
@@ -19,9 +19,11 @@ aws:
         - CidrIp: "0.0.0.0/0"
 
 g5k:
+  g5k_user: "your username"
+  g5k_password: "your password"
+  image_name: "ubuntu1804-x64-python3"
   location: "nancy"
   cluster: "grisou"
-  user: "root"
 
 cluster:
   user: "root"

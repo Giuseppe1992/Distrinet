@@ -49,20 +49,15 @@
       apt :
         name: openvswitch-switch
 
-    - name: unistall lxd
-      apt :
-        name: lxd
-        state: absent
+    - name: install btrfs-tools
+      apt:
+        name: btrfs-tools
 
-    - name: unistall lxd-client
+    - name: install lxd
+      apt:
+        name: lxd
+
+    - name: install lxd-client
       apt :
         name: lxd-client
-        state: absent
-
-    - name:
-      snap :
-        name: lxd
-        classic: yes
-
-
 
