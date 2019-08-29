@@ -149,17 +149,21 @@ class distrinetAWS(Provision):
         i = 0
         for subnet in subnets:
             i += len(list(subnet.instances.all()))
-        with progressbar.ProgressBar(max_value=i,prefix="Deleting the instances") as bar:
+        with progressbar.ProgressBar(max_value=i, prefix="Deleting the instances") as bar:
+            bar.update(0)
+            completed_hosts=0
             while True:
                 subnets = vpc.subnets.all()
                 instances = []
                 for subnet in subnets:
                     instances += subnet.instances.all()
-                    bar.update(i-len(instances))
+                    if i-len(instances) != completed_hosts:
+                        completed_hosts = i-len(instances)
                 if not instances:
                     bar.update(i)
                     break
-                sleep(2)
+                bar.update(completed_hosts)
+                sleep(1)
 
         # make sure that the elastic ip addresses are out not linked to the vpc
         sleep(5)
@@ -714,7 +718,7 @@ if __name__ == '__main__':
                                                    {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 8}}]}
                                              ])
 
-    #o.deploy()
+    o.deploy()
 
     #input()
     #distrinetAWS.removeVPC("vpc-0e603975c640e7778")

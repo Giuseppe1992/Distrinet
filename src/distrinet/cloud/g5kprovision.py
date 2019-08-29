@@ -6,15 +6,18 @@ from time import sleep
 import paramiko
 import os
 
-KEY = 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDN+7brU3dYYrMLrjO3+MAO7xGQATwA47FfzIxxjOkbpuP7zCOGSuJK1g9fRkPK5psygt' \
-      'lbGsklTgGqfRntTNU0rK9u7KSFy4+WwCAQ1gKHDRjKjNrvpgqt9994SnqIBd8B8nTAP6YriOdrsLCLOfZZR17iL63KQlmeEl5/Rpitj6Rc' \
-      'SaY4Xkmozg8eH7hBVaVoA6tCGelUHe+xYPJ+YJN/v13Qprb49ngPSweX/BhCQ1QiXtNlsVI1YI0Y5QoZbeSlUgj/e8gVYnBSXN788xEs/W' \
-      '3n3EM+PcWAUoayg0NZlfbmBG65/jgNlQruD/zEiXyO9JclCAcsQttplTQXQ1a/ giuseppe@eduroam-249a.sophia.inria.fr'
-
-IMAGE = 'ubuntu1804-x64-python3'
-USERNAME = "root"
-SRC_PLAYBOOKS_DIR = "playbooks"
-DST_PLAYBOOKS_DIR = "/tmp/playbooks"
+conf = Provision.get_configurations()
+ssh_conf = conf["ssh"]
+g5k_conf = conf["g5k"]
+G5K_USER = g5k_conf["g5k_user"]
+G5K_PASS = g5k_conf["g5k_password"]
+KEY = ssh_conf["pub_id"]
+IMAGE = g5k_conf["image_name"]
+USERNAME = ssh_conf["user"]
+LOCATION = g5k_conf["location"]
+CLUSTER = g5k_conf["cluster"]
+SRC_PLAYBOOKS_DIR = "distrinet/cloud/playbooks"
+DST_PLAYBOOKS_DIR = "/root/playbooks"
 
 
 class g5k(Provision):
@@ -157,29 +160,44 @@ class g5k(Provision):
         id_rsa_pub = ssh_stdout.read()
 
         ssh_connection.close()
-        return str(id_rsa_pub, 'utf-8')
+        return str(id_rsa_pub, 'utf-8').strip()
+
+    @staticmethod
+    def setupMasterAutorizedKeysOnWorkers(pub_id, WorkerHostsIp):
+        """
+        Append the Master authorized_keys on the Slaves Authorized Keys
+        :param pub_id: public_id to authorize
+        :param WorkerHostsIp: list of the worker host private Ip
+        :return: None
+        """
+
+        for workerIp in WorkerHostsIp:
+            print(pub_id)
+            command = "echo '' >> $HOME/.ssh/authorized_keys; echo  '{}' >> $HOME/.ssh/authorized_keys".format(pub_id)
+            print(WorkerHostsIp)
+            session = g5k.createSshSession(host=workerIp, username=USERNAME)
+            g5k.executeCommand(SshSession=session, command=command)
+            g5k.closeSshSession(SshSession=session)
 
     def InstallImageInTheNodes(self, Image, Location, Nodes, Key):
         Master = Nodes[0]
         Workers = Nodes[1:]
-        deploymentMaster = self.installImage(Header=self.header, Location=Location, Nodes=[Master], Image=Image,
+        deploymentNodes = self.installImage(Header=self.header, Location=Location, Nodes=Nodes, Image=Image,
                                              Key=Key)
-        deploymentMasterId = self.extractDeploymentId(deploymentMaster)
-        print(deploymentMasterId)
-        self.waitDeploymentInReadyState(Header=self.header, Location=Location, DeploymentID=deploymentMasterId)
+        deploymentNodesId = self.extractDeploymentId(deploymentNodes)
+        print(deploymentNodesId)
+        self.waitDeploymentInReadyState(Header=self.header, Location=Location, DeploymentID=deploymentNodesId)
+
         publicKey = self.createKeyPair(hostname=Master, username=USERNAME)
 
-        deploymentWorkers = self.installImage(Header=self.header, Location=Location, Nodes=Workers, Image=Image,
-                                              Key=publicKey)
-        deploymentWorkersId = self.extractDeploymentId(deploymentWorkers)
+        self.setupMasterAutorizedKeysOnWorkers(pub_id=publicKey, WorkerHostsIp=Workers)
+
         sshMasterSession = self.createSshSession(host=Master, username=USERNAME)
 
         self.setupMasterHost(SshSession=sshMasterSession)
         sleep(2)
         self.setAnsibleHosts(SshSession=sshMasterSession, MasterHostIp=Master, WorkersList=Workers)
         self.copyFilesInHost(SshSession=sshMasterSession, SrcDir=SRC_PLAYBOOKS_DIR, DstDir=DST_PLAYBOOKS_DIR)
-        sleep(2)
-        self.waitDeploymentInReadyState(Header=self.header, Location=Location, DeploymentID=deploymentWorkersId)
         sleep(2)
         self.installEnvironment(SshSession=sshMasterSession, PlaybookPath=DST_PLAYBOOKS_DIR + "/install-g5k-lxd.yml")
         sleep(2)
@@ -195,10 +213,11 @@ class g5k(Provision):
 
 
 if __name__ == '__main__':
-    with open("g5k_credentials.json", "r") as credentials_file:
-        credentals_json = eval(credentials_file.read())
-        username, password = credentals_json["username"], credentals_json["password"]
-    obj = g5k(user=username, password=password, Image=IMAGE, Key=KEY, Location='nancy', nodes="2", walltime="5:00",
-              cluster="grisou")
+
+    obj = g5k(user=G5K_USER, password=G5K_PASS, Image=IMAGE, Key=KEY, Location=LOCATION, nodes="3", walltime="2:00",
+              cluster=CLUSTER)
     r = obj.deploy()
     print(r)
+    #obj.setupMasterAutorizedKeysOnWorkers(pub_id="HELLO",WorkerHostsIp=['grisou-9.nancy.grid5000.fr'])
+    #print(obj.createKeyPair(hostname='grisou-31.nancy.grid5000.fr'))
+    #print(1)
