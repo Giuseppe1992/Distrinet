@@ -132,6 +132,7 @@ class distrinetAWS(Provision):
             ec2client.delete_nat_gateway(NatGatewayId=nat)
         # wait that all the nat gateways are in deleted state
         with progressbar.ProgressBar(max_value=len(nat_ids), prefix="Deleting the nat gateway") as bar:
+            bar.update(0)
             while True:
                 nat_gateways = ec2client.describe_nat_gateways(Filters=[{"Name": "vpc-id", "Values": [vpc.id]}])[
                     "NatGateways"]
@@ -149,7 +150,7 @@ class distrinetAWS(Provision):
         i = 0
         for subnet in subnets:
             i += len(list(subnet.instances.all()))
-        with progressbar.ProgressBar(max_value=i, prefix="Deleting the instances") as bar:
+        with progressbar.ProgressBar(max_value=i, prefix="Deleting the instances",suffix="It needs some minutes") as bar:
             bar.update(0)
             completed_hosts=0
             while True:
@@ -178,7 +179,7 @@ class distrinetAWS(Provision):
         for rt in route_tables:
             associations = rt['Associations']
             if associations == []:
-                print(ec2client.delete_route_table(RouteTableId=rt['RouteTableId']))
+                ec2client.delete_route_table(RouteTableId=rt['RouteTableId'])
                 continue
 
             for association in associations:
@@ -187,7 +188,7 @@ class distrinetAWS(Provision):
                     ec2client.disassociate_route_table(AssociationId=association_id)
             sleep(1)
             if (False,) == tuple(set([association["Main"] for association in associations])):
-                print(ec2client.delete_route_table(RouteTableId=rt["RouteTableId"]))
+                ec2client.delete_route_table(RouteTableId=rt["RouteTableId"])
 
         # delete our endpoints
         for ep in ec2client.describe_vpc_endpoints(
@@ -620,87 +621,104 @@ class distrinetAWS(Provision):
         self.privateKey = self.createKeyPair(KeyName=KEY_PAIR_NAME_WORKERS)
 
     def __aws_deploy(self):
-        image_ami = self.getImageAMIFromRegion(Region=AWS_REGION, ImageName=IMAGE_NAME_AWS)
-        self.__aws_resource_check()
-        self.__aws_vpc__configuration()
+        with progressbar.ProgressBar(max_value=10, prefix="AWS Configuration") as bar:
+            bar.update(0)
+            image_ami = self.getImageAMIFromRegion(Region=AWS_REGION, ImageName=IMAGE_NAME_AWS)
+            bar.update(1)
+            self.__aws_resource_check()
+            bar.update(2)
+            self.__aws_vpc__configuration()
+            bar.update(3)
 
-        privateKey = self.privateKey["KeyMaterial"]
-        publicSubnetId = self.publicSubnet.id
-        privateSubnetId = self.privateSubnet.id
+            privateKey = self.privateKey["KeyMaterial"]
+            publicSubnetId = self.publicSubnet.id
+            privateSubnetId = self.privateSubnet.id
 
-        self.bastionHostPublicIp = self.createElasticIp(Domain='vpc')
-        bastionHostPublicIpId = self.bastionHostPublicIp['AllocationId']
-        bastionHostPublicIp = self.bastionHostPublicIp["PublicIp"]
+            self.bastionHostPublicIp = self.createElasticIp(Domain='vpc')
+            bastionHostPublicIpId = self.bastionHostPublicIp['AllocationId']
+            bastionHostPublicIp = self.bastionHostPublicIp["PublicIp"]
 
 
-        self.natGateWayPublicIp = self.createElasticIp(Domain='vpc')
-        natGateWayPublicIpId = self.natGateWayPublicIp["AllocationId"]
+            self.natGateWayPublicIp = self.createElasticIp(Domain='vpc')
+            natGateWayPublicIpId = self.natGateWayPublicIp["AllocationId"]
 
-        self.natGateWay = self.createNatGateWay(SubnetId=publicSubnetId, AllocationId=natGateWayPublicIpId)
-        natGateWayId = self.natGateWay["NatGateway"]["NatGatewayId"]
+            self.natGateWay = self.createNatGateWay(SubnetId=publicSubnetId, AllocationId=natGateWayPublicIpId)
+            natGateWayId = self.natGateWay["NatGateway"]["NatGatewayId"]
+            bar.update(4)
+            "Run the bastion host"
+            self.bastionHostDescription["ImageId"] = image_ami
+            self.bastionHostDescription["numberOfInstances"] = 1
+            self.bastionHost = self.runInstances(SubnetId=publicSubnetId,
+                                                 KeyName=KEY_PAIR_NAME_BASTION,
+                                                 **self.bastionHostDescription)
+            #print(self.bastionHost)
+            bastionHostId = self.bastionHost['Instances'][0]['InstanceId']
+            bar.update(5)
+            self.workerHosts = []
+            workerHostsId = []
+            for workerDescription in self.workersHostsDescription:
+                workerDescription["ImageId"] = image_ami
+                response = self.runInstances(SubnetId=privateSubnetId, KeyName=KEY_PAIR_NAME_WORKERS, **workerDescription)
+                self.workerHosts.append(response)
+                for instance in response['Instances']:
+                    workerHostsId.append(instance['InstanceId'])
 
-        "Run the bastion host"
-        self.bastionHostDescription["ImageId"] = image_ami
-        self.bastionHostDescription["numberOfInstances"] = 1
-        self.bastionHost = self.runInstances(SubnetId=publicSubnetId,
-                                             KeyName=KEY_PAIR_NAME_BASTION,
-                                             **self.bastionHostDescription)
-        print(self.bastionHost)
-        bastionHostId = self.bastionHost['Instances'][0]['InstanceId']
+            securityGroupId = self.securityGroup["GroupId"]
+            self.modifyGroupId(instancesId=[bastionHostId], Groups=[securityGroupId])
+            self.modifyGroupId(instancesId=workerHostsId, Groups=[securityGroupId])
+            bar.update(6)
+            self.waitInstancesRunning(instancesIdList=[bastionHostId])
+            self.assignElasticIp(ElasticIpId=bastionHostPublicIpId, InstanceId=bastionHostId)
+            bar.update(7)
+            sleep(30)
+            sshUserSession = self.createSshSession(host=bastionHostPublicIp, username=MAIN_USER)
+            self.grantRootAccess(SshSession=sshUserSession)
+            self.setupBastionHost(SshSession=sshUserSession, PrivateKey=privateKey)
+            self.waitInstancesRunning(instancesIdList=workerHostsId)
+            bar.update(8)
+            sleep(30)
 
-        self.workerHosts = []
-        workerHostsId = []
-        for workerDescription in self.workersHostsDescription:
-            workerDescription["ImageId"] = image_ami
-            response = self.runInstances(SubnetId=privateSubnetId, KeyName=KEY_PAIR_NAME_WORKERS, **workerDescription)
-            self.workerHosts.append(response)
-            for instance in response['Instances']:
-                workerHostsId.append(instance['InstanceId'])
-
-        securityGroupId = self.securityGroup["GroupId"]
-        self.modifyGroupId(instancesId=[bastionHostId], Groups=[securityGroupId])
-        self.modifyGroupId(instancesId=workerHostsId, Groups=[securityGroupId])
-        self.waitInstancesRunning(instancesIdList=[bastionHostId])
-        self.assignElasticIp(ElasticIpId=bastionHostPublicIpId, InstanceId=bastionHostId)
-        sleep(30)
-        sshUserSession = self.createSshSession(host=bastionHostPublicIp, username=MAIN_USER)
-        self.grantRootAccess(SshSession=sshUserSession)
-        self.setupBastionHost(SshSession=sshUserSession, PrivateKey=privateKey)
-        self.waitInstancesRunning(instancesIdList=workerHostsId)
-        sleep(30)
-
-        self.waitNatGateWaysAvailable(NatGatewaysId=[natGateWayId])
-        self.addRoute(routeTable=self.privateRouteTable, GatewayId=natGateWayId, DestinationCidrBlock="0.0.0.0/0")
-        sleep(5)
-        return bastionHostPublicIp
+            self.waitNatGateWaysAvailable(NatGatewaysId=[natGateWayId])
+            self.addRoute(routeTable=self.privateRouteTable, GatewayId=natGateWayId, DestinationCidrBlock="0.0.0.0/0")
+            bar.update(9)
+            sleep(5)
+            bar.update(10)
+            return bastionHostPublicIp
 
     def deploy(self):
         """
         Deploy Amazon environment
         :return: BastionHost Ip, masterHostPrivateIp, PrivateHosts Ip
         """
+
         bastionHostPublicIp = self.__aws_deploy()
-        sshRootSession = self.createSshSession(host=bastionHostPublicIp, username="root")
+        with progressbar.ProgressBar(max_value=6, prefix="Nodes Configuration") as bar:
+            sshRootSession = self.createSshSession(host=bastionHostPublicIp, username="root")
 
-        masterHostPrivateIp = self.bastionHost['Instances'][0]['PrivateIpAddress']
-        workerHostsPrivateIp = []
-        for response in self.workerHosts:
-            for instance in response['Instances']:
-                workerHostsPrivateIp.append(instance['PrivateIpAddress'])
+            masterHostPrivateIp = self.bastionHost['Instances'][0]['PrivateIpAddress']
+            workerHostsPrivateIp = []
+            for response in self.workerHosts:
+                for instance in response['Instances']:
+                    workerHostsPrivateIp.append(instance['PrivateIpAddress'])
+            bar.update(1)
 
-        self.setAnsibleHosts(SshSession=sshRootSession, MasterHostIp=masterHostPrivateIp,
-                             WorkersList=workerHostsPrivateIp)
-        self.copyFilesInHost(SshSession=sshRootSession, SrcDir=SRC_PLAYBOOKS_DIR, DstDir=DST_PLAYBOOKS_DIR)
-        sleep(5)
-        self.installEnvironment(SshSession=sshRootSession, PlaybookPath=DST_PLAYBOOKS_DIR + "/install-aws-lxd.yml")
-        sleep(5)
-        sshRootSession = self.createSshSession(host=bastionHostPublicIp, username="root")
-        self.configureLxd(SshSession=sshRootSession, MasterPrivateIp=masterHostPrivateIp,
-                          PlaybookPath=DST_PLAYBOOKS_DIR)
+            self.setAnsibleHosts(SshSession=sshRootSession, MasterHostIp=masterHostPrivateIp,
+                                 WorkersList=workerHostsPrivateIp)
+            bar.update(2)
+            self.copyFilesInHost(SshSession=sshRootSession, SrcDir=SRC_PLAYBOOKS_DIR, DstDir=DST_PLAYBOOKS_DIR)
+            sleep(5)
+            bar.update(3)
+            self.installEnvironment(SshSession=sshRootSession, PlaybookPath=DST_PLAYBOOKS_DIR + "/install-aws-lxd.yml")
+            sleep(5)
+            bar.update(4)
+            sshRootSession = self.createSshSession(host=bastionHostPublicIp, username="root")
 
-        self.setupMasterAutorizedKeysOnWorkers(SshSession=sshRootSession, WorkerHostsIp=workerHostsPrivateIp)
-
-        return bastionHostPublicIp, masterHostPrivateIp, workerHostsPrivateIp
+            self.configureLxd(SshSession=sshRootSession, MasterPrivateIp=masterHostPrivateIp,
+                              PlaybookPath=DST_PLAYBOOKS_DIR)
+            bar.update(5)
+            self.setupMasterAutorizedKeysOnWorkers(SshSession=sshRootSession, WorkerHostsIp=workerHostsPrivateIp)
+            bar.update(6)
+            return bastionHostPublicIp, masterHostPrivateIp, workerHostsPrivateIp
 
 def awsProvisionHelper(*args, instanceType='t3.2xlarge', volumeSize=50, **kwargs):
     numberOfInstances = (args[0]-1) if len(args) > 0 else 2
