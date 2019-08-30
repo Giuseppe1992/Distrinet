@@ -492,6 +492,9 @@ class MininetRunner( object ):
             for x in PREBUILD:
                 x(topo=topo)
 
+            for n in topo.hosts() + topo.switches():
+                print (n, "  :: ",topo.nodeInfo(n))
+
             ## 
             Net = partial( Distrinet ,
                     link=link,

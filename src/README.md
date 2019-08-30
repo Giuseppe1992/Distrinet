@@ -60,6 +60,12 @@ port_forwarding:
     remote: 8181
 ```
 
+# Runing Hadoop tests
+
+```
+--controller=lxcremote,ip=192.168.0.1 --custom hadoop_test.py --test hadoop
+```
+
 ## Examples
 
 ```

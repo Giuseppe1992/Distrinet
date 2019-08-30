@@ -23,7 +23,7 @@ def getHadoopMaster(topo):
             return host
     raise Exception("No Hadoop master found, is it a Hadoop cluster?")
 
-def toHadoop(topo, slave_image=None, master_image=None, **_opts):
+def toHadoop(topo, slave_image='ubuntu-hadoop-slave', master_image='ubuntu-hadoop-master', **_opts):
         """
         Configure the hosts of a topology to be in a Hadoop cluster
         The first (alphabetical order) host is the master, all others are the
