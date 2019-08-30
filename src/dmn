@@ -60,7 +60,7 @@ from distrinet.dummymapper import DummyMapper
 MAPPER = { 'dummymapper': DummyMapper }
 from distrinet.topodc import (DumbbellTopo)
 
-from distrinet.cloud.awsprovision import (awsProvisionHelper)
+from distrinet.cloud.awsprovision import (awsProvisionHelper, distrinetAWS)
 
 PROVISIONDEF = 'aws'
 PROVISION = { 'aws': awsProvisionHelper }
