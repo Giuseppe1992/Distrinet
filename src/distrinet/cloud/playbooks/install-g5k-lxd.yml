@@ -61,3 +61,7 @@
       apt :
         name: lxd-client
 
+    - name: install ryu
+      apt:
+        name: python-ryu
+
