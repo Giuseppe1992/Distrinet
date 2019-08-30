@@ -21,7 +21,8 @@ if 'PYTHONPATH' in os.environ:
     sys.path = os.environ[ 'PYTHONPATH' ].split( ':' ) + sys.path
 
 from mininet.clean import cleanup
-import mininet.cli
+#import mininet.cli
+import distrinet.cli
 from mininet.log import lg, LEVELS, info, debug, warn, error, output
 from mininet.net import Mininet, MininetWithControlNet, VERSION
 from mininet.node import ( Host, CPULimitedHost, Controller, OVSController,
@@ -532,7 +533,8 @@ class MininetRunner( object ):
 
 
         # --custom files can set CLI or change mininet.cli.CLI
-        CLI = mininet.cli.CLI if CLI is None else CLI
+#        CLI = mininet.cli.CLI if CLI is None else CLI
+        CLI = distrinet.cli.DCLI if CLI is None else CLI
 
         if opts.pre:
             CLI( mn, script=opts.pre )

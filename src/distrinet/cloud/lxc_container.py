@@ -793,7 +793,7 @@ class LxcNode (Node):
         r = ''
         while maxbytes > 0:
             try:
-                c = await asyncio.wait_for(self.stdout.read(n=1), timeout=5.0)
+                c = await asyncio.wait_for(self.stdout.read(n=1), timeout=timeout)
                 r = r + c
                 if c == '\x7f':
                     return r
