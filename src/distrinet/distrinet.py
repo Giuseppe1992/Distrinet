@@ -108,6 +108,8 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
 from mininet.term import cleanUpScreens, makeTerms
 
 # DSA ########################
+from distrinet.util import _info
+
 #from distrinet.cloud.cloudnode import (CloudHost, CloudController, CloudSwitch)
 from distrinet.cloud.cloudlink import (CloudLink)
 from mininet.link import (Intf, TCIntf)
@@ -218,11 +220,11 @@ class Distrinet( Mininet ):
 
         self.client_keys = client_keys
         self.master = master
-        print ("Connecting to master node")
+        _info ("Connecting to master node\n")
         self.masterSsh = ASsh(loop=self.loop, host=self.master, username=self.user, bastion=self.jump, client_keys=self.client_keys)
         self.masterSsh.connect()
         self.masterSsh.waitConnected()
-        print ("connected to master node")
+        _info ("connected to master node\n")
 
 
 
@@ -303,7 +305,7 @@ class Distrinet( Mininet ):
         if "image" in self.topo.nodeInfo(name):
             defaults.update({"image":self.topo.nodeInfo(name)})
         else:
-            print ("we are missing an image for ", name)
+            error ("we are missing an image for {} \n".format(name))
             exit()
         
         defaults.update( params )
@@ -326,7 +328,6 @@ class Distrinet( Mininet ):
 
     # DSA - OK
     def addController( self, name='c0', controller=None, **params ):
-        print (self.master, self.loop)
         """Add controller.
            controller: Controller class
            params: Parameters for the controller"""
@@ -539,7 +540,7 @@ class Distrinet( Mininet ):
         _ip = "{}/{}".format(ipAdd(self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen), self.adminPrefixLen)
         self.adminNextIP += 1
         self.host.createMasterAdminNetwork(self.masterSsh, brname="admin-br", ip=_ip)
-        info (" admin network created on {}\n".format(self.master))
+        _info (" admin network created on {}\n".format(self.master))
 
 
         assert (isinstance(self.controllers, list))
@@ -597,30 +598,31 @@ class Distrinet( Mininet ):
         if not waitStart:
             nodes = self.hosts + self.switches
 
-            print ("[starting")
+            _info ("[starting\n")
             for node in nodes:
-                print ("connectTarget", node.name)
+                _info ("connectTarget {} ".format( node.name))
                 node.connectTarget()
 
             for node in nodes:
                 node.waitConnectedTarget()
-                print ("connectedTarget", node.name)
+                _info ("connectedTarget {} ".format( node.name))
 
             for node in nodes:
-                print ("createContainer", node.name)
+                _info ("createContainer {} ".format( node.name))
                 node.createContainer()
 
             for node in nodes:
                 node.waitCreated()
-                print ("createdContainer", node.name)
+                _info ("createdContainer {} ".format(node.name))
            
             for node in nodes:
-                print ("create admin interface", node.name)
+                _info ("create admin interface {} ".format( node.name))
                 node.addContainerInterface(intfName="admin", brname="admin-br", wait=False)
 
             for node in nodes:
                 node.targetSshWaitOutput()
-                print ("admin interface created on", node.name)
+                _info ("admin interface created on {} ".format( node.name))
+            _info ("\n")
 
             cmds = []
             for node in nodes:
@@ -635,23 +637,24 @@ class Distrinet( Mininet ):
                 node.targetSshWaitOutput()
 
             for node in nodes:
-                print ("connecting", node.name)
+                _info ("connecting {} ".format( node.name))
                 node.connect()
 
             for node in nodes:
                 node.waitConnected()
-                print ("connected", node.name)
+                _info ("connected {} ".format( node.name))
 
             for node in nodes:
-                print ("startshell", node.name)
+                _info ("startshell {} ".format( node.name) )
                 node.startShell(waitStart=False)
             for node in nodes:
                 node.waitStarted()
-                print ("startedshell", node.name)
+                _info ("startedshell {}".format( node.name))
 
             for node in nodes:
-                print ("finalize", node.name)
+                _info ("finalize {}".format( node.name))
                 node.finalizeStartShell()
+            _info ("\n")
 
         info( '\n*** Adding links:\n' )
         for srcName, dstName, params in topo.links(
@@ -712,7 +715,7 @@ class Distrinet( Mininet ):
         info( '*** Starting\n' )
         info( '\n' )
 
-        print ("      -------------------   configuring interfaces -------------")
+        _info ("      -------------------   configuring interfaces -------------\n")
         for host in self.hosts:
             for intfName in host.nameToIntf.keys():
                 intf = host.nameToIntf[intfName]
@@ -799,11 +802,13 @@ class Distrinet( Mininet ):
         info( '*** cleaning master\n' )
         # XXX DSA need to find something nicer
         for node in self.hosts + self.switches + self.controllers:
-            print ("wait ", node)
+            _info ("wait {} ".format( node ))
             node.targetSshWaitOutput()
             for device in node.devicesMaster:
-                print ("delete device {} on master".format(device))
-                self.masterSsh.cmd("ip link delete {}".format(device))
+                _info ("delete device {} on master ".format(device))
+                self.masterSsh.cmd("ip link delete {} ".format(device))
+            _info ("\n")
+        _info ("\n")
         self.loop.stop()
         info( '\n*** Done\n' )
 
@@ -1034,7 +1039,7 @@ class Distrinet( Mininet ):
         if fmt:
             iperfArgs += '-f %s ' % fmt
         server.sendCmd( iperfArgs + '-s ' )
-        print ("Server running:", server, "(",server.IP(),")", ":",port,". client", client)
+        _info ("Server running: {} ({}):{}. client {}\n".format(server, server.IP(), port, client))
         if l4Type == 'TCP':
             if not waitListening( client, server.IP(), port ):
                 raise Exception( 'Could not connect to iperf on port %d'

@@ -13,6 +13,8 @@ from mininet.util import ( quietRun, errRun, errFail, moveIntf, isShellBuiltin,
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, OVSIntf
 
+def info(*args, **kwargs):
+    pass
 
 ###
 import asyncio
@@ -202,7 +204,6 @@ class LxcNode (Node):
 
         # SSH with the target
         if self.target:
-            print ("Il y a un taret", self.target)
             self.targetSsh = ASsh(loop=self.loop, host=self.target, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
         # when no target, use the master node as anchor point
         else:
@@ -215,17 +216,14 @@ class LxcNode (Node):
         self.ssh = ASsh(loop=self.loop, host=admin_ip, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
 
         if waitStart:
-            print ("#[")
             
-            print ("\tconnecting to the target")
+            info ("{} Connecting to the target {}".format(self, self.target))
             self.connectTarget()
             self.waitConnectedTarget()
-            print ("\tconnected")
+            info (" connected ")
 
             self.createContainer(**params)
-            print ("X")
             self.waitCreated()
-            print ("YES")
             self.addContainerInterface(intfName="admin", brname="admin-br")
             self.connectToAdminNetwork(master=self.master.host, target=self.target, link_id=CloudLink.newLinkId(), admin_br="admin-br")
 
@@ -233,8 +231,7 @@ class LxcNode (Node):
             self.connect()
             self.waitConnected()
             self.startShell(waitStart=waitStart)
-            print (self, "started")
-            print ("#]")
+            info (" started\n")
             
         ## ====================================================================
 # ===================================<??????????????????
@@ -331,7 +328,6 @@ class LxcNode (Node):
         if target1 != target2:
             ip1 = self._findNameIP(target1)
             ip2 = self._findNameIP(target2)
-            print ("ips",ip1,ip2)
             if ip1 == ip2:
                 return cmds
             comm = "ip link add {} type vxlan id {} remote {} local {} dstport {}".format(vxlan_name, vxlan_id, ip2,
@@ -378,7 +374,6 @@ class LxcNode (Node):
             # DSA - TODO - XXX beurk bridge2 = None
             cmds = self.createContainerLinkCommandList(target, master, link_id, vxlan_name, bridge1=admin_br, bridge2=None)
             cmd = ';'.join(cmds)
-            print ("target {}:".format(target),cmd)
 
             if wait:
                 self.targetSsh.cmd(cmd)
@@ -406,14 +401,11 @@ class LxcNode (Node):
 
     def createContainer(self, **params): 
 ################################################################################        time.sleep(1.0)
-        print ("\tcreate container ({} {} {})".format(self.image, self.cpu, self.memory))
+        info ("create container ({} {} {}) ".format(self.image, self.cpu, self.memory))
         cmds = []
         # initialise the container
         cmd = "lxc init {} {} ".format(self.image, self.name)
-        # specify a target
-#XXX        if self.target is not None:
-#XXX            cmd += " --target {}".format(self.target)
-        print (">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", cmd)
+        info ("{}\n".format(cmd))
         cmds.append(cmd)
 
         # limit resources
@@ -437,10 +429,7 @@ class LxcNode (Node):
 
     def waitCreated(self):
         self.targetSshWaitOutput()
-        print ("\tcontainer created")
-#        self.configureContainer()
-#        print ("master configured")
-#        print ("]")
+        info ("container created")
 
 
     def addContainerInterface(self, intfName, devicename=None, brname=None, wait=True, **params):

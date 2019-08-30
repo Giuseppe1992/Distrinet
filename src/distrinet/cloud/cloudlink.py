@@ -77,8 +77,14 @@ class CloudLink( Link ):
         if not intfName2:
             intfName2 = self.intfName( node2, params2[ 'port' ] )
 
-        self.params1 = params1
-        self.params2 = params2
+        self.params1 = {}
+        self.params1.update(params)
+        self.params1.update(params1)
+
+
+        self.params2 = {}
+        self.params2.update(params)
+        self.params2.update(params2)
 
         # Make interfaces
         interfaces = self.makeIntfPair( intfName1, intfName2, addr1, addr2,
@@ -88,11 +94,11 @@ class CloudLink( Link ):
             cls1 = intf
         if not cls2:
             cls2 = intf
-
+        
         intf1 = cls1( name=intfName1, node=node1,
-                      link=self, mac=addr1, **params1  )
+                      link=self, mac=addr1, **self.params1  )
         intf2 = cls2( name=intfName2, node=node2,
-                      link=self, mac=addr2, **params2 )
+                      link=self, mac=addr2, **self.params2 )
         
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2

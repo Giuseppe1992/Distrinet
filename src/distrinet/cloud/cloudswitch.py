@@ -114,7 +114,6 @@ class LxcOVSSwitch( LxcSwitch ):
     def _start(self):
         "Make sure Open vSwitch is installed and working"
 ####        version = self.cmd( 'ovs-vsctl --version ')
-####        print ("XXXXXXXXXXXXXX",self.name,version)
 ####        self.OVSVersion = findall( r'\d+\.\d+', version )[ 0 ]
         self.OVSVersion = '1.13'
         self.isSetup = True

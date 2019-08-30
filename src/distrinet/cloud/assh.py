@@ -1,8 +1,10 @@
 from subprocess import PIPE
-
+from mininet.log import info, error, debug, output, warn
 import asyncio, asyncssh
 from functools import partial
 import time
+
+from distrinet.util import _info
 
 class ASsh(object):
     def __init__(self, loop, host, port=22, username=None, bastion=None,
@@ -84,7 +86,7 @@ class ASsh(object):
 
         async with connect(host=bastion, port=bastion_port) as conn:
             self.tunnel = await conn.forward_local_port('', 0, host, port)
-            print ("tunnel {}:{}:{} {}@{}:{}".format(self.tunnel.get_port(), host, port, self.username, bastion, bastion_port))
+            _info ("tunnel {}:{}:{} {}@{}:{} \n".format(self.tunnel.get_port(), host, port, self.username, bastion, bastion_port))
             while self.run:
                 await asyncio.sleep(1)
 
@@ -137,7 +139,7 @@ class ASsh(object):
                     while self.run:
                         await asyncio.sleep(1)
             except Exception as e:
-                print ("Error for {}@{} via {}:{}: {}".format(self.username, self.host, self.bastion, port, e))
+                error ("Error for {}@{} via {}:{}: {} \n".format(self.username, self.host, self.bastion, port, e))
 
     def waitConnected(self):
         """

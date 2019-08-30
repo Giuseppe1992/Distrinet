@@ -2,6 +2,9 @@ from mininet.log import lg, LEVELS, info, debug, warn, error, output
 
 from distrinet.cloud.lxc_container import (LxcNode)
 
+from distrinet.util import _info
+
+
 class LxcController ( LxcNode ):
     def __init__( self, name,
                   loop, master, admin_ip,
@@ -81,7 +84,7 @@ class OnosLxcController ( LxcController ):
         cout = '/tmp/' + self.name + '.log'
         if self.cdir is not None:
             self.cmd( 'cd ' + self.cdir )
-        info ( "Starting Onos controller\n")
+        info ( "*** Starting Onos controller\n")
         self.cmd("source ~/.bashrc; nohup /opt/onos-2.1.0/bin/onos-service start >& /tmp/controller.dat &")
         import time
         time.sleep(60)

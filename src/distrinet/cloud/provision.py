@@ -6,8 +6,10 @@ import paramiko
 from pathlib import Path
 import yaml
 
-CONF_FILE = ".distrinet/conf.yml"
+def _info(*args, **kwargs):
+    pass
 
+CONF_FILE = ".distrinet/conf.yml"
 
 class Provision (object):
     def __init__(self, *args, **kwargs):
@@ -59,7 +61,7 @@ class Provision (object):
         with open(str(conf_file), "r") as stream:
             conf_dict = yaml.safe_load(stream)
 
-        print(conf_dict)
+        _info(conf_dict)
         return conf_dict
 
 
@@ -89,11 +91,11 @@ class Provision (object):
         """
         ssh_stdin, ssh_stdout, ssh_stderr = SshSession.exec_command(command)
         in_, out, err = ssh_stdin, ssh_stdout.read(), ssh_stderr.read()
-        print()
-        print(command)
-        print("OUT: ", out)
-        print("ERR: ", err)
-        print()
+        _info()
+        _info(command)
+        _info("OUT: {}\n".format( out))
+        _info("ERR: {}\n".format( err))
+        _info()
 
         return in_, out, err
 
@@ -162,9 +164,9 @@ class DummyProvision (Provision):
         self.n = n
         self.user = kwargs.pop("user", "root")
         self.params = kwargs
-        print ("DummyProvision", self.n, self.params)
+        _info ("DummyProvision {} {}\n".format(self.n, self.params))
 
     def deploy(self):
-        print ("deploying...")
+        _info ("deploying...\n")
         sleep(2)
         return "master1"

@@ -11,7 +11,7 @@
 # LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
 # OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
-
+from mininet.log import info, debug, warn, error, output
 from mininet.topo import (irange, Topo, SingleSwitchTopo)
 
 # == Utils ===================================================================
@@ -212,7 +212,7 @@ class DumbbellTopo( Topo ):
                 sw = s1
             else:
                 sw = s2
-            print ("connect {} to {}".format(h, sw))
+            info ("connect {} to {}\n".format(h, sw))
             self.addLink(h, sw)
             hosts.append(h)
 
@@ -283,14 +283,14 @@ class DemoTopo( FatTreeTopo ):
 
     # highest node is a web node
         host = self.hosts(sort=True)[-1]
-        print ("Web server nodes:", host)
+        info ("Web server nodes: {}\n".format( host) )
         role = "web"
         infos = {}
         infos.update(self.nodeInfo(host))
         infos.update({"image":"ubuntu", "role":role})
         self.setNodeInfo(host, infos)
 
-        print ("Attachment switch:", self.switches()[0])
+        info ("Attachment switch: {}\n".format( self.switches()[0]))
 
         hwest = self.addHost("hwest")
 

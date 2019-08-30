@@ -1,6 +1,6 @@
 import time
 from mininet.log import info, debug, warn, error, output
-import default_image
+from distrinet.util import (default_images)
 
 def iperf_test(mn):
     topo = mn.topo
@@ -31,7 +31,7 @@ def iperf_test(mn):
 
 
 # we need the right images to run iperf
-PREBUILD = [default_image.default_images]
+PREBUILD = [default_images]
 
 # adding the test in the suite
 TESTS = {'iperfall':iperf_test}

@@ -65,7 +65,9 @@ from distrinet.cloud.awsprovision import (awsProvisionHelper, distrinetAWS)
 PROVISIONDEF = 'aws'
 PROVISION = { 'aws': awsProvisionHelper }
 
-PREBUILD = []
+from distrinet.util import (default_images)
+
+PREBUILD = [default_images]
 # =============================================================================
 
 # built in topologies, created only when run
@@ -465,7 +467,6 @@ class MininetRunner( object ):
             master = workers[0]
 
         if opts.provision or opts.workers:
-            print ("YOOOOOOOO", jump, master, workers)
             warn( '*** WARNING: Experimental cloud mode!\n'
                   '*** Using LxcNode, LxcOVSSwitch, CloudLink\n' )
             host, switch, link = LxcNode, LxcOVSSwitch, CloudLink
@@ -487,13 +488,12 @@ class MininetRunner( object ):
 
             places = _rounRobin(topo=topo, cluster=workers)
             mapper = placement=MAPPER[ opts.mapper ](places=places)
-            print ("mapping:", mapper.places)
+            info ("*** Mapping: {}\n".format( mapper.places))
 
-            for x in PREBUILD:
-                x(topo=topo)
 
-            for n in topo.hosts() + topo.switches():
-                print (n, "  :: ",topo.nodeInfo(n))
+            if opts.provision or opts.workers:
+                for x in PREBUILD:
+                    x(topo=topo)
 
             ## 
             Net = partial( Distrinet ,
