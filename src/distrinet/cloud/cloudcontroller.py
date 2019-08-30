@@ -84,7 +84,7 @@ class OnosLxcController ( LxcController ):
         info ( "Starting Onos controller\n")
         self.cmd("source ~/.bashrc; nohup /opt/onos-2.1.0/bin/onos-service start >& /tmp/controller.dat &")
         import time
-        time.sleep(25)
+        time.sleep(60)
         cmds = ["/opt/onos-2.1.0/bin/onos-app 127.0.0.1 activate org.onosproject.openflow-base",
                 "/opt/onos-2.1.0/bin/onos-app 127.0.0.1 activate org.onosproject.openflow",
                 "/opt/onos-2.1.0/bin/onos-app 127.0.0.1 activate org.onosproject.openflow-message",

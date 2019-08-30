@@ -51,7 +51,6 @@ def makeSlaves(topo, net):
         makeFile(net, host, slaves, "/root/hadoop-2.7.6/etc/hadoop/slaves", overwrite=False)
 
 def hadoop_test(mn):
-    print (dir(mn))
     topo = mn.topo
     aliasMaster(topo=topo, net=mn)
     print ("# populate etc/hadoop/masters")
