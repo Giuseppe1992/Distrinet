@@ -702,6 +702,26 @@ class distrinetAWS(Provision):
 
         return bastionHostPublicIp, masterHostPrivateIp, workerHostsPrivateIp
 
+def awsProvisionHelper(*args, instanceType='t3.2xlarge', volumeSize=50, **kwargs):
+    numberOfInstances = (args[0]-1) if len(args) > 0 else 2
+    if isinstance(volumeSize, str):
+        volumeSize = int(volumeSize)
+
+    vpcname = "demo_{}".format(int(time()))
+    params = {'VPCName':vpcname,
+            'addressPoolVPC': '10.0.0.0/16',
+            'publicSubnetNetwork': '10.0.0.0/24',
+            'privateSubnetNetwork': '10.0.1.0/24',
+            'bastionHostDescription': {'instanceType': instanceType,
+                'BlockDeviceMappings':[{'DeviceName': "/dev/sda1",
+                    'Ebs' : { 'VolumeSize' : volumeSize }}]},
+                'workersHostsDescription':[{'numberOfInstances': numberOfInstances, 'instanceType': instanceType,
+                    'BlockDeviceMappings':[{'DeviceName': '/dev/sda1',
+                        'Ebs' : { 'VolumeSize' : volumeSize }}]}
+                    ]
+            }
+    return distrinetAWS(**params)
+
 
 if __name__ == '__main__':
     o = distrinetAWS(VPCName="DEMO-", addressPoolVPC="10.0.0.0/16", publicSubnetNetwork='10.0.0.0/24',

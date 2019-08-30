@@ -59,9 +59,10 @@ from distrinet.dummymapper import DummyMapper
 MAPPER = { 'dummymapper': DummyMapper }
 from distrinet.topodc import (DumbbellTopo)
 
-from distrinet.cloud.awsprovision import (distrinetAWS)
+from distrinet.cloud.awsprovision import (awsProvisionHelper)
+
 PROVISIONDEF = 'aws'
-PROVISION = { 'aws': distrinetAWS }
+PROVISION = { 'aws': awsProvisionHelper }
 
 PREBUILD = []
 # =============================================================================
@@ -452,20 +453,7 @@ class MininetRunner( object ):
             provision, args, kwargs = splitArgs(opts.provision)
             if provision not in PROVISION:
                 raise Exception( 'Invalid topo name %s' % topo )
-            vpcname = "demo_{}".format(int(time.time()))
-            params = {'VPCName':vpcname,
-                    'addressPoolVPC': '10.0.0.0/16',
-                    'publicSubnetNetwork': '10.0.0.0/24',
-                    'privateSubnetNetwork': '10.0.1.0/24',
-                    'bastionHostDescription': {'instanceType': 't3.2xlarge',
-                        'BlockDeviceMappings':[{'DeviceName': "/dev/sda1",
-                            'Ebs' : { 'VolumeSize' : 50 }}]},
-                        'workersHostsDescription':[{'numberOfInstances': 2, 'instanceType': 't3.2xlarge',
-                            'BlockDeviceMappings':[{'DeviceName': '/dev/sda1',
-                                'Ebs' : { 'VolumeSize' : 50 }}]}
-                            ]
-                        }
-            kwargs.update(params)
+           
             provisionner = PROVISION[ provision ]( *args, **kwargs )
             jump, master, workerHostsPrivateIp = provisionner.deploy()
             workers = [master] + workerHostsPrivateIp

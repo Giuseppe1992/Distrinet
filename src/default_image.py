@@ -4,11 +4,6 @@ def default_images(*args, **kwargs):
     conf = Provision.get_configurations()
     ssh_conf = conf["ssh"]
     pub_id = ssh_conf["pub_id"]
-#    client_keys = ssh_conf["client_keys"]
-#    if isinstance(client_keys, str):
-#        client_keys = [client_keys]
-#    user = ssh_conf["user"]
-#    jump = ssh_conf.get("bastion", None)
 
     topo = kwargs['topo']
 

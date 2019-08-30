@@ -6,6 +6,15 @@
 python3 dmn --provision=aws
 ```
 
+With the possibility to overwrite default parameters:
+
+```
+python3 dmn --provision=aws,3,instanceType=t3.2xlarge,volumeSize=10
+```
+
+would instantiate a total of 3 t3.2xlarge instances, each one with a volume
+size of 10 GiB.
+
 ## Using running cluster
 
 Specify the bastion address in the `ssh` section of the `~/.distrinet/conf.yml`
