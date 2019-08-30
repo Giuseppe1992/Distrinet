@@ -5,9 +5,9 @@ import os
 import paramiko
 from pathlib import Path
 import yaml
+import logging
 
-def _info(*args, **kwargs):
-    pass
+logging.basicConfig(filename='provision.log', filemode='a', format='%(name)s - %(levelname)s - %(message)s')
 
 CONF_FILE = ".distrinet/conf.yml"
 
@@ -61,7 +61,6 @@ class Provision (object):
         with open(str(conf_file), "r") as stream:
             conf_dict = yaml.safe_load(stream)
 
-        _info(conf_dict)
         return conf_dict
 
 
@@ -91,11 +90,10 @@ class Provision (object):
         """
         ssh_stdin, ssh_stdout, ssh_stderr = SshSession.exec_command(command)
         in_, out, err = ssh_stdin, ssh_stdout.read(), ssh_stderr.read()
-        _info()
-        _info(command)
-        _info("OUT: {}\n".format( out))
-        _info("ERR: {}\n".format( err))
-        _info()
+
+        logging.info(command)
+        logging.info(f"OUT: {out}")
+        logging.info(f"ERR: {err}")
 
         return in_, out, err
 
