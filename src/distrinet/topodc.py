@@ -207,25 +207,13 @@ class DumbbellTopo( Topo ):
        
         hosts = list()
         for i in range(n):
-            h = self.addHost("h{}".format(i))
+            h = self.addHost("h{}".format(i+1))
             if i < int(n/2):
                 sw = s1
             else:
                 sw = s2
-            info ("connect {} to {}\n".format(h, sw))
             self.addLink(h, sw)
             hosts.append(h)
-
-        #h1 = self.addHost( 'master' )
-        #h2 = self.addHost( 'slave1' )
-        #
-        #h3 = self.addHost( 'slave2' )
-        #h4 = self.addHost( 'slave3' )
-        #
-        #self.addLink( h1, s1 )
-        #self.addLink( h2, s1 )
-        #self.addLink( h3, s2 )
-        #self.addLink( h4, s2 )
 
 class LxcSingleSwitchTopo (SingleSwitchTopo ):
     def __init__( self, *args, **params ):
