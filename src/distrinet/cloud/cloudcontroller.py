@@ -84,10 +84,11 @@ class OnosLxcController ( LxcController ):
         cout = '/tmp/' + self.name + '.log'
         if self.cdir is not None:
             self.cmd( 'cd ' + self.cdir )
-        info ( "*** Starting Onos controller\n")
+        info ( " starting Onos ")
         self.cmd("source ~/.bashrc; nohup /opt/onos-2.1.0/bin/onos-service start >& /tmp/controller.dat &")
         import time
-        time.sleep(60)
+        time.sleep(25)
+        info ( " installing Onos Apps")
         cmds = ["/opt/onos-2.1.0/bin/onos-app 127.0.0.1 activate org.onosproject.openflow-base",
                 "/opt/onos-2.1.0/bin/onos-app 127.0.0.1 activate org.onosproject.openflow",
                 "/opt/onos-2.1.0/bin/onos-app 127.0.0.1 activate org.onosproject.openflow-message",
@@ -98,6 +99,7 @@ class OnosLxcController ( LxcController ):
                 "/opt/onos-2.1.0/bin/onos-app 127.0.0.1 activate org.onosproject.linkprops",
                 "/opt/onos-2.1.0/bin/onos-app 127.0.0.1 activate org.onosproject.fwd"]
         self.cmd(";".join(cmds))
+        info ( ".")
 
         self.execed = False
 

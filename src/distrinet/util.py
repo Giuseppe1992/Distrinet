@@ -13,7 +13,7 @@ def default_images(*args, **kwargs):
 
     sopts={ "image":"switch","controller":"c0", 'pub_id':pub_id, "cpu":4, "memory":"2GB" }
     hopts={ "image":"ubuntu", 'pub_id':pub_id, "cpu":2, "memory":"4GB" }
-    lopts={ "bw":100 } #, "delay":"10ms"}
+    lopts={ "bw":1000 } #, "delay":"10ms"}
 
     topo.hopts.update(hopts)
     topo.sopts.update(sopts)
