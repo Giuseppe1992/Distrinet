@@ -29,7 +29,6 @@ def iperf_test(mn):
     for h in mn.hosts:
         h.cmd("killall -9 iperf")
 
-
 # we need the right images to run iperf
 PREBUILD = [default_images]
 
