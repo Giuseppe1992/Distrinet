@@ -3,36 +3,65 @@
 - hosts: master
   tasks:
 
-
     - name   : Download switch
       get_url:
-        url : http://18.195.229.56:8000/switch.tar.gz
+        url : https://distrinet.s3.eu-central-1.amazonaws.com/switch.tar.gz
         dest: ~/switch.tar.gz
         mode: 0666
 
     - name   : Download ubuntu18:04
       get_url:
-        url : http://18.195.229.56:8000/ubuntu.tar.gz
+        url : https://distrinet.s3.eu-central-1.amazonaws.com/ubuntu.tar.gz
         dest: ~/ubuntu.tar.gz
         mode: 0666
 
     - name   : Download slave
       get_url:
-        url : http://18.195.229.56:8000/ubuntu-hadoop-slave.tar.gz
+        url : https://distrinet.s3.eu-central-1.amazonaws.com/ubuntu-hadoop-slave.tar.gz
         dest: ~/ubuntu-hadoop-slave.tar.gz
         mode: 0666
 
     - name   : Download master
       get_url:
-        url : http://18.195.229.56:8000/ubuntu-hadoop-master.tar.gz
+        url : https://distrinet.s3.eu-central-1.amazonaws.com/ubuntu-hadoop-master.tar.gz
         dest: ~/ubuntu-hadoop-master.tar.gz
         mode: 0666
 
     - name: Download onos-image
       get_url:
-        url: http://18.195.229.56:8000/ubuntu-onos-2.1.0.tar.gz
+        url: https://distrinet.s3.eu-central-1.amazonaws.com/ubuntu-onos-2.1.0.tar.gz
         dest: ~/ubuntu-onos-2.1.0.tar.gz
         mode: 0666
+
+#    - name   : Download switch
+#      get_url:
+#        url : http://18.195.229.56:8000/switch.tar.gz
+#        dest: ~/switch.tar.gz
+#        mode: 0666
+#
+#    - name   : Download ubuntu18:04
+#      get_url:
+#        url : http://18.195.229.56:8000/ubuntu.tar.gz
+#        dest: ~/ubuntu.tar.gz
+#        mode: 0666
+#
+#    - name   : Download slave
+#      get_url:
+#        url : http://18.195.229.56:8000/ubuntu-hadoop-slave.tar.gz
+#        dest: ~/ubuntu-hadoop-slave.tar.gz
+#        mode: 0666
+#
+#    - name   : Download master
+#      get_url:
+#        url : http://18.195.229.56:8000/ubuntu-hadoop-master.tar.gz
+#        dest: ~/ubuntu-hadoop-master.tar.gz
+#        mode: 0666
+#
+#    - name: Download onos-image
+#      get_url:
+#        url: http://18.195.229.56:8000/ubuntu-onos-2.1.0.tar.gz
+#        dest: ~/ubuntu-onos-2.1.0.tar.gz
+#        mode: 0666
 
 - hosts      : all
   remote_user: ubuntu
