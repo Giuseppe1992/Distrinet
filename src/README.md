@@ -49,16 +49,30 @@ where
 
 # Port forwarding
 
-To forward ports from bastion to an emulated machine, add an entry in the
+To forward ports from bastion to a reachable machine, add an entry as follows
+in the `port_forwarding` section of the `~/.distrinet/conf.yml` file.
+
+```
+port_forwarding:
+  - local: <port number on which to listen>
+    proto: '<protocol>'
+    ip: '<ip address of the listening machine>'
+    remote: <port number on the listening>
+```
+
+To forward ports from bastion to a container, add an entry as follows in the
 `port_forwarding` section of the `~/.distrinet/conf.yml` file.
 
 ```
 port_forwarding:
-  - local: 8181
-    proto: 'tcp'
-    ip: '192.168.0.250'
-    remote: 8181
+  - local: <port number on which to listen>
+    proto: '<protocol>'
+    container: '<container name>'
+    ip: '<ip address of the listening machine>'
+    remote: <port number on the listening>
 ```
+
+
 
 # Runing Hadoop tests
 
