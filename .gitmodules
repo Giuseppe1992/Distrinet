@@ -4,6 +4,3 @@
 [submodule "mininet"]
 	path = mininet
 	url = https://github.com/mininet/mininet.git
-[submodule "mininet2"]
-	path = mininet2
-	url = https://github.com/mininet/mininet.git
