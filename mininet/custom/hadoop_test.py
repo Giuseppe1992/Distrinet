@@ -1,9 +1,7 @@
-from distrinet.topodc import (toHadoop, getHadoopMaster)
+from mininet.topodc import (toHadoop, getHadoopMaster)
 import time
-from distrinet.util import makeFile, makeHosts
+from mininet.dutil import makeFile, makeHosts, default_images
 from mininet.log import info, debug, warn, error, output
-
-from distrinet.util import default_images
 
 def aliasMaster(topo, net):
     master = getHadoopMaster(topo)
@@ -97,7 +95,6 @@ def hadoop_test(mn):
     output (hadoopMasterNode.cmd('bash -c "/root/hadoop-2.7.6/bin/hadoop dfs -copyFromLocal /etc/hosts bench.wordcount/hosts"'))
     output (hadoopMasterNode.cmd('bash -c "/root/hadoop-2.7.6/bin/hadoop jar  /root/hadoop-2.7.6/share/hadoop/mapreduce/hadoop-mapreduce-examples-2.7.6.jar wordcount bench.wordcount/hosts bench.wordcount bench.wordcount.out"'))
     output ("\n")
-
 
 # we need the right images to run hadoop
 PREBUILD = [default_images, toHadoop]

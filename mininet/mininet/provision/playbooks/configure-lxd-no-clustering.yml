@@ -2,6 +2,8 @@
 
 - hosts      : all
   remote_user: root
+  vars       :
+    master_ip: "{{ master_ip }}"
   tasks      :
     - name  : master lxd configuration
       expect:
@@ -26,6 +28,8 @@
 
 - hosts      : workers
   remote_user: root
+  vars       :
+    master_ip: "{{ master_ip }}"
   tasks      :
     - name   : distribute switch image
       copy   :
@@ -47,14 +51,11 @@
         src  : ~/ubuntu-hadoop-slave.tar.gz
         dest : ~/ubuntu-hadoop-slave.tar.gz
 
-    - name   : distribute onos image
-      copy   :
-        src  : ~/ubuntu-onos-2.1.0.tar.gz
-        dest : ~/ubuntu-onos-2.1.0.tar.gz
-
 
 - hosts      : all
   remote_user: root
+  vars       :
+    master_ip: "{{ master_ip }}"
   tasks      :
     - name   : create switch image
       command: lxc image import ~/switch.tar.gz --alias switch --public

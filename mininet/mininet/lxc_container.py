@@ -21,7 +21,7 @@ import asyncio
 from threading import Thread
 import time
 
-from distrinet.cloud.assh import ASsh
+from mininet.assh import ASsh
 
 # XXX TODO DSA - make it clean
 # #####################
@@ -32,7 +32,7 @@ def genIntfName():
     return "intf{}".format(intfnum)
 
 from mininet.node import Node
-from distrinet.cloud.cloudlink import CloudLink
+from mininet.cloudlink import CloudLink
 
 # #####################
 class LxcNode (Node):
