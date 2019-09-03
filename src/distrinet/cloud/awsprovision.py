@@ -380,7 +380,7 @@ class distrinetAWS(Provision):
         :param instanceType: Type of instance that you want to run
         :param KeyName: KeyName present in your account
         :param ImageId: Image AMI id provided by Amazon AWS
-        :param kwargs: Oprional parameters to personalize your image, the correct documentation can be found at:
+        :param kwargs: Optional parameters to personalize your image, the correct documentation can be found at:
         https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Client.run_instances
         :return: RunInstances Client response, boto3.client('ec2').run_instances()
         """
@@ -744,16 +744,16 @@ def awsProvisionHelper(*args, instanceType='t3.2xlarge', volumeSize=50, **kwargs
 if __name__ == '__main__':
     o = distrinetAWS(VPCName="DEMO-", addressPoolVPC="10.0.0.0/16", publicSubnetNetwork='10.0.0.0/24',
                      privateSubnetNetwork='10.0.1.0/24',
-                     bastionHostDescription={'instanceType': 't3.2xlarge',
+                     bastionHostDescription={'instanceType': 't3.large',
 
 
                                              "BlockDeviceMappings": [
-                                                 {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 8}}
+                                                 {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 15}}
                                              ]
                                              },
-                     workersHostsDescription=[{"numberOfInstances": 2, 'instanceType': 't3.2xlarge',
+                     workersHostsDescription=[{"numberOfInstances": 2, 'instanceType': 't3.large',
                                                "BlockDeviceMappings": [
-                                                   {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 8}}]}
+                                                   {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 15}}]}
                                              ])
 
     o.deploy()

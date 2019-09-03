@@ -214,7 +214,7 @@ class g5k(Provision):
 
 if __name__ == '__main__':
 
-    obj = g5k(user=G5K_USER, password=G5K_PASS, Image=IMAGE, Key=KEY, Location=LOCATION, nodes="3", walltime="2:00",
+    obj = g5k(user=G5K_USER, password=G5K_PASS, Image=IMAGE, Key=KEY, Location=LOCATION, nodes="4", walltime="7:00",
               cluster=CLUSTER)
     r = obj.deploy()
     print(r)
