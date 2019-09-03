@@ -529,9 +529,7 @@ class MininetRunner( object ):
                 cmds = []
                 cmds.append("sysctl -w net.ipv4.ip_forward=1")
                 for pf in port_forwarding:
-                    if "container" in pf:
-                        cmds.append("lxc config device add {} myport{} proxy listen={}:0.0.0.0:{} connect={}:{}:{}".format(pf['container'], pf['remote'], pf['proto'], pf['local'], pf['proto'], pf['ip'], pf['remote'] ))
-                    else:
+                    if "container" not in pf:
                         cmds.append("iptables --table nat -A PREROUTING --protocol {} --dport {} --jump DNAT --to-destination {}:{}".format(pf['proto'], pf['local'], pf['ip'], pf['remote']))
                 cmds.append("iptables -t nat -A POSTROUTING -j MASQUERADE")
                 mn.masterSsh.cmd(";".join(cmds))
@@ -550,13 +548,14 @@ class MininetRunner( object ):
         if opts.provision or opts.workers:
             # port forwarding
             if 'port_forwarding' in locals():
-                cmds = []
-                cmds.append("sysctl -w net.ipv4.ip_forward=1")
                 for pf in port_forwarding:
                     if "container" in pf:
-                        cmds.append("lxc config device add {} myport{} proxy listen={}:0.0.0.0:{} connect={}:{}:{}".format(pf['container'], pf['remote'], pf['proto'], pf['local'], pf['proto'], pf['ip'], pf['remote'] ))
-                mn.masterSsh.cmd(";".join(cmds))
-
+                        # port forwarding on the master node
+                        cmd = "iptables --table nat -A PREROUTING --protocol {} --dport {} --jump DNAT --to-destination {}:{}".format(pf['proto'], pf['local'], mn.nameToNode[pf['container']].targetSsh.host, pf['local'])
+                        mn.masterSsh.cmd(cmd)
+                        # port forwarding on the container
+                        cmd = "lxc config device add {} myport{} proxy listen={}:0.0.0.0:{} connect={}:{}:{}".format(pf['container'], pf['remote'], pf['proto'], pf['local'], pf['proto'], pf['ip'], pf['remote'] )
+                        mn.nameToNode[pf['container']].targetSsh.cmd(cmd)
 
         if opts.test:
             runTests( mn, opts.test )
@@ -571,8 +570,11 @@ class MininetRunner( object ):
             if 'port_forwarding' in locals():
                 cmds = []
                 for pf in port_forwarding:
-                    if "container" not in pf:
+                    if "container" in pf:
+                        cmds.append("iptables --table nat -D PREROUTING --protocol {} --dport {} --jump DNAT --to-destination {}:{}".format(pf['proto'], pf['local'], mn.nameToNode[pf['container']].targetSsh.host, pf['local']))
+                    else:
                         cmds.append("iptables --table nat -D PREROUTING --protocol {} --dport {} --jump DNAT --to-destination {}:{}".format(pf['proto'], pf['local'], pf['ip'], pf['remote']))
+                
                 cmds.append("iptables -t nat -D POSTROUTING -j MASQUERADE")
                 mn.masterSsh.cmd(";".join(cmds))
 
