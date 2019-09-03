@@ -1,4 +1,4 @@
-from distrinet.cloud.provision import Provision
+from mininet.provision.provision import Provision
 from time import sleep, time
 import boto3
 import os
@@ -10,7 +10,7 @@ import progressbar
 conf = Provision.get_configurations()
 aws_conf = conf["aws"]
 AWS_REGION = aws_conf["region"]
-SRC_PLAYBOOKS_DIR = "distrinet/cloud/playbooks"
+SRC_PLAYBOOKS_DIR = "mininet/provision/playbooks"
 DST_PLAYBOOKS_DIR = "/root/playbooks"
 MAIN_USER = aws_conf["user"]
 KEY_PAIR_NAME_WORKERS = 'DistrinetKey-' + str(uuid.uuid4().hex)

@@ -1,15 +1,23 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
-Mininet runner
+Dininet runner
+author: Damien Saucez (damien.saucez@gmail.com)
 author: Brandon Heller (brandonh@stanford.edu)
 
 To see options:
-  sudo mn -h
+  dmn -h
 
 Example to pull custom params (topo, switch, etc.) from a file:
-  sudo mn --custom ~/mininet/custom/custom_example.py
+  mn --custom ~/mininet/custom/custom_example.py
 """
+
+import imp
+imp.load_source('mnbin', 'bin/mn')
+
+from mnbin import (MininetRunner)
+from mnbin import (version, addDictOption, TESTS, ALTSPELLING, LINKS, LINKDEF, CONTROLLERS, HOSTS, HOSTDEF, SWITCHES, SWITCHDEF, TOPOS, TOPODEF, PLACEMENT)
+
 
 from optparse import OptionParser
 import os
@@ -21,21 +29,14 @@ if 'PYTHONPATH' in os.environ:
     sys.path = os.environ[ 'PYTHONPATH' ].split( ':' ) + sys.path
 
 from mininet.clean import cleanup
-#import mininet.cli
-import distrinet.cli
+from mininet.dcli import DCLI
 from mininet.log import lg, LEVELS, info, debug, warn, error, output
 from mininet.net import Mininet, MininetWithControlNet, VERSION
-from mininet.node import ( Host, CPULimitedHost, Controller, OVSController,
-                           Ryu, NOX, RemoteController, findController,
-                           DefaultController, NullController,
-                           UserSwitch, OVSSwitch, OVSBridge,
-                           IVSSwitch )
-from mininet.nodelib import LinuxBridge
-from mininet.link import Link, TCLink, TCULink, OVSLink
-from mininet.topo import ( SingleSwitchTopo, LinearTopo,
-                           SingleSwitchReversedTopo, MinimalTopo )
-from mininet.topolib import TreeTopo, TorusTopo
-from mininet.util import customClass, specialClass, splitArgs
+from mininet.node import (
+                           findController,
+                           )
+from mininet.link import Link, TCLink
+from mininet.util import customClass, splitArgs
 from mininet.util import buildTopo
 
 from functools import partial
@@ -43,101 +44,44 @@ from functools import partial
 # Experimental! cluster edition prototype
 from mininet.examples.cluster import ( MininetCluster, RemoteHost,
                                        RemoteOVSSwitch, RemoteLink,
-                                       SwitchBinPlacer, RandomPlacer,
                                        ClusterCleanup )
 from mininet.examples.clustercli import ClusterCLI
 
-PLACEMENT = { 'block': SwitchBinPlacer, 'random': RandomPlacer }
-
 # ==
-from distrinet.cloud.lxc_container import ( LxcNode )
-from distrinet.cloud.cloudswitch import LxcOVSSwitch 
-from distrinet.cloud.cloudlink import CloudLink
-from distrinet.distrinet import Distrinet
-from distrinet.cloud.cloudcontroller import (LxcRemoteController, OnosLxcController)
+from mininet.lxc_container import ( LxcNode )
+from mininet.cloudswitch import LxcOVSSwitch 
+from mininet.cloudlink import CloudLink
+from mininet.distrinet import Distrinet
+from mininet.cloudcontroller import (LxcRemoteController, OnosLxcController)
 
-from distrinet.dummymapper import DummyMapper
-MAPPER = { 'dummymapper': DummyMapper }
-from distrinet.topodc import (DumbbellTopo)
+from mininet.mapper.dummymapper import DummyMapper
+from mininet.topodc import (DumbbellTopo)
 
-from distrinet.cloud.awsprovision import (awsProvisionHelper, distrinetAWS)
+from mininet.provision.awsprovision import (awsProvisionHelper, distrinetAWS)
+from mininet.dutil import (default_images)
+
+
+from mininet.provision.provision import Provision
+
+TOPOS.update({'dumbbell': DumbbellTopo})
+
+CONTROLLERS.update({'lxcremote': LxcRemoteController,
+                    'onoslxc': OnosLxcController})
+
+
+# == 
+MAPPERDEF = 'dummymapper' 
+MAPPERS = { 'dummymapper': DummyMapper }
 
 PROVISIONDEF = 'aws'
-PROVISION = { 'aws': awsProvisionHelper }
-
-from distrinet.util import (default_images)
+PROVISIONS = { 'aws': awsProvisionHelper }
 
 PREBUILD = [default_images]
-# =============================================================================
-
-# built in topologies, created only when run
-TOPODEF = 'minimal'
-TOPOS = { 'minimal': MinimalTopo,
-          'linear': LinearTopo,
-          'reversed': SingleSwitchReversedTopo,
-          'single': SingleSwitchTopo,
-          'tree': TreeTopo,
-          'torus': TorusTopo,
-          'dumbbell': DumbbellTopo}
-
-SWITCHDEF = 'default'
-SWITCHES = { 'user': UserSwitch,
-             'ovs': OVSSwitch,
-             'ovsbr' : OVSBridge,
-             # Keep ovsk for compatibility with 2.0
-             'ovsk': OVSSwitch,
-             'ivs': IVSSwitch,
-             'lxbr': LinuxBridge,
-             'default': OVSSwitch }
-
-HOSTDEF = 'proc'
-HOSTS = { 'proc': Host,
-          'rt': specialClass( CPULimitedHost, defaults=dict( sched='rt' ) ),
-          'cfs': specialClass( CPULimitedHost, defaults=dict( sched='cfs' ) ) }
-
-CONTROLLERDEF = 'default'
-CONTROLLERS = { 'ref': Controller,
-                'ovsc': OVSController,
-                'nox': NOX,
-                'remote': RemoteController,
-                'lxcremote': LxcRemoteController,
-                'onoslxc': OnosLxcController,
-                'ryu': Ryu,
-                'default': DefaultController,  # Note: overridden below
-                'none': NullController }
-
-LINKDEF = 'default'
-LINKS = { 'default': Link,  # Note: overridden below
-          'tc': TCLink,
-          'tcu': TCULink,
-          'ovs': OVSLink }
-
-# TESTS dict can contain functions and/or Mininet() method names
-# XXX: it would be nice if we could specify a default test, but
-# this may be tricky
-TESTS = { name: True
-          for name in ( 'pingall', 'pingpair', 'iperf', 'iperfudp' ) }
 
 CLI = None  # Set below if needed
 
-# Locally defined tests
-def allTest( net ):
-    "Run ping and iperf tests"
-    net.waitConnected()
-    net.start()
-    net.ping()
-    net.iperf()
 
-def nullTest( _net ):
-    "Null 'test' (does nothing)"
-    pass
-
-TESTS.update( all=allTest, none=nullTest, build=nullTest )
-
-# Map to alternate spellings of Mininet() methods
-ALTSPELLING = { 'pingall': 'pingAll', 'pingpair': 'pingPair',
-                'iperfudp': 'iperfUdp' }
-
+# XXX DSA - can't reuse directly the one from mn because TESTS is used...
 def runTests( mn, options ):
     """Run tests
        mn: Mininet object
@@ -158,67 +102,10 @@ def runTests( mn, options ):
                 raise Exception( 'Test %s is unknown - please specify one of '
                                  '%s ' % ( test, TESTS.keys() ) )
 
-
-def addDictOption( opts, choicesDict, default, name, **kwargs ):
-    """Convenience function to add choices dicts to OptionParser.
-       opts: OptionParser instance
-       choicesDict: dictionary of valid choices, must include default
-       default: default choice key
-       name: long option name
-       kwargs: additional arguments to add_option"""
-    helpStr = ( '|'.join( sorted( choicesDict.keys() ) ) +
-                '[,param=value...]' )
-    helpList = [ '%s=%s' % ( k, v.__name__ )
-                 for k, v in choicesDict.items() ]
-    helpStr += ' ' + ( ' '.join( helpList ) )
-    params = dict( type='string', default=default, help=helpStr )
-    params.update( **kwargs )
-    opts.add_option( '--' + name, **params )
-
-def version( *_args ):
-    "Print Mininet version and exit"
-    output( "%s\n" % VERSION )
-    exit()
-
-
-class MininetRunner( object ):
+class DistrinetRunner( MininetRunner ):
     "Build, setup, and run Mininet."
 
-    def __init__( self ):
-        "Init."
-        self.options = None
-        self.args = None  # May be used someday for more CLI scripts
-        self.validate = None
-
-        self.parseArgs()
-        self.setup()
-        self.begin()
-
-    def custom( self, _option, _opt_str, value, _parser ):
-        """Parse custom file and add params.
-           option: option e.g. --custom
-           opt_str: option string e.g. --custom
-           value: the value the follows the option
-           parser: option parser instance"""
-        files = []
-        if os.path.isfile( value ):
-            # Accept any single file (including those with commas)
-            files.append( value )
-        else:
-            # Accept a comma-separated list of filenames
-            files += value.split(',')
-
-        for fileName in files:
-            customs = {}
-            if os.path.isfile( fileName ):
-                # pylint: disable=exec-used
-                exec( compile( open( fileName ).read(), fileName, 'exec' ),
-                      customs, customs )
-                for name, val in customs.items():
-                    self.setCustom( name, val )
-            else:
-                raise Exception( 'could not find custom file: %s' % fileName )
-
+    # XXX DSA - can't inherit it directly because of globals...
     def setCustom( self, name, value ):
         "Set custom parameters for MininetRunner."
         if name in ( 'topos', 'switches', 'hosts', 'controllers', 'links'
@@ -232,6 +119,7 @@ class MininetRunner( object ):
         else:
             # Add or modify global variable or class
             globals()[ name ] = value
+
 
     def setNat( self, _option, opt_str, value, parser ):
         "Set NAT option(s)"
@@ -247,10 +135,11 @@ class MininetRunner( object ):
             parser.values.nat_args = []
             parser.values.nat_kwargs = {}
 
+    # XXX - DSA cant' call super because of the exit in mn...
     def parseArgs( self ):
         """Parse command-line args and return options object.
            returns: opts parse options dict"""
-
+  
         desc = ( "The %prog utility creates Mininet network from the\n"
                  "command line. It can create parametrized topologies,\n"
                  "invoke the Mininet CLI, and run tests." )
@@ -324,13 +213,13 @@ class MininetRunner( object ):
         opts.add_option("-w","--workers", dest="workers",
                           help="worker nodes (their LXC name)", metavar="workers") 
         opts.add_option( '--mapper', type='choice',
-                         choices=list( MAPPER.keys() ), default='dummymapper',
+                         choices=list( MAPPERS.keys() ), default='dummymapper',
                          metavar='dummymapper',
                          help=( 'node mapping for --workers '
                                 '(experimental!) ' ) )
         opts.add_option("--bunga", dest="bunga",
                           help="VPC ID", metavar="bunga")
-        addDictOption( opts, PROVISION, None, 'provision' )
+        addDictOption( opts, PROVISIONS, None, 'provision' )
         # =====================================================================
 
 
@@ -341,20 +230,7 @@ class MininetRunner( object ):
             opts.print_help()
             exit()
 
-    def setup( self ):
-        "Setup and validate environment."
-
-        # set logging verbosity
-        if LEVELS[self.options.verbosity] > LEVELS['output']:
-            warn( '*** WARNING: selected verbosity level (%s) will hide CLI '
-                    'output!\n'
-                    'Please restart Mininet with -v [debug, info, output].\n'
-                    % self.options.verbosity )
-        lg.setLogLevel( self.options.verbosity )
-
-    # Maybe we'll reorganize this someday...
-    # pylint: disable=too-many-branches,too-many-statements,global-statement
-
+    # XXX - DSA can't use super because the method is not decomposed enough in mn
     def begin( self ):
         "Create and run mininet."
 
@@ -371,6 +247,7 @@ class MininetRunner( object ):
             cleanup()
             exit()
 
+        # == distrinet
         if opts.bunga:
             warn(" ** experimental bunga! \n")
             distrinetAWS.removeVPC(VpcId=opts.bunga) 
@@ -434,7 +311,6 @@ class MininetRunner( object ):
 
         # load default configuration
         if opts.provision or opts.workers:
-            from distrinet.cloud.provision import Provision
             conf = Provision.get_configurations()
             ssh_conf = conf["ssh"]
             pub_id = ssh_conf["pub_id"]
@@ -454,10 +330,10 @@ class MininetRunner( object ):
         if opts.provision:
             warn( '*** WARNING: Experimental cloud mode!\n' )
             provision, args, kwargs = splitArgs(opts.provision)
-            if provision not in PROVISION:
+            if provision not in PROVISIONS:
                 raise Exception( 'Invalid topo name %s' % topo )
            
-            provisionner = PROVISION[ provision ]( *args, **kwargs )
+            provisionner = PROVISIONS[ provision ]( *args, **kwargs )
             jump, master, workerHostsPrivateIp = provisionner.deploy()
             workers = [master] + workerHostsPrivateIp
 
@@ -487,9 +363,8 @@ class MininetRunner( object ):
                 return places
 
             places = _rounRobin(topo=topo, cluster=workers)
-            mapper = placement=MAPPER[ opts.mapper ](places=places)
+            mapper = MAPPERS[ opts.mapper ](places=places)
             info ("*** Mapping: {}\n".format( mapper.places))
-
 
             if opts.provision or opts.workers:
                 for x in PREBUILD:
@@ -537,8 +412,7 @@ class MininetRunner( object ):
 
 
         # --custom files can set CLI or change mininet.cli.CLI
-#        CLI = mininet.cli.CLI if CLI is None else CLI
-        CLI = distrinet.cli.DCLI if CLI is None else CLI
+        CLI = DCLI if CLI is None else CLI
 
         if opts.pre:
             CLI( mn, script=opts.pre )
@@ -578,8 +452,6 @@ class MininetRunner( object ):
                 cmds.append("iptables -t nat -D POSTROUTING -j MASQUERADE")
                 mn.masterSsh.cmd(";".join(cmds))
 
-
-
         mn.stop()
 
         elapsed = float( time.time() - start )
@@ -588,7 +460,7 @@ class MininetRunner( object ):
 
 if __name__ == "__main__":
     try:
-        MininetRunner()
+        DistrinetRunner()
     except KeyboardInterrupt:
         info( "\n\nKeyboard Interrupt. Shutting down and cleaning up...\n\n")
         cleanup()

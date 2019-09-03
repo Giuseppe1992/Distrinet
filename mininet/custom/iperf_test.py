@@ -1,6 +1,6 @@
 import time
 from mininet.log import info, debug, warn, error, output
-from distrinet.util import (default_images)
+from mininet.dutil import (default_images)
 
 def iperf_test(mn):
     topo = mn.topo

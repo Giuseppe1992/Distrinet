@@ -4,7 +4,7 @@ import asyncio, asyncssh
 from functools import partial
 import time
 
-from distrinet.util import _info
+from mininet.dutil import _info
 
 class ASsh(object):
     def __init__(self, loop, host, port=22, username=None, bastion=None,
