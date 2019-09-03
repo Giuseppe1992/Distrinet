@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 Dininet runner
@@ -16,7 +16,7 @@ import imp
 imp.load_source('mnbin', 'bin/mn')
 
 from mnbin import (MininetRunner)
-from mnbin import (version, addDictOption, runTests, TESTS, LINKS, LINKDEF, CONTROLLERS, HOSTS, HOSTDEF, SWITCHES, SWITCHDEF, TOPOS, TOPODEF, PLACEMENT)
+from mnbin import (version, addDictOption, TESTS, ALTSPELLING, LINKS, LINKDEF, CONTROLLERS, HOSTS, HOSTDEF, SWITCHES, SWITCHDEF, TOPOS, TOPODEF, PLACEMENT)
 
 
 from optparse import OptionParser
@@ -29,7 +29,7 @@ if 'PYTHONPATH' in os.environ:
     sys.path = os.environ[ 'PYTHONPATH' ].split( ':' ) + sys.path
 
 from mininet.clean import cleanup
-import distrinet.cli
+from mininet.dcli import DCLI
 from mininet.log import lg, LEVELS, info, debug, warn, error, output
 from mininet.net import Mininet, MininetWithControlNet, VERSION
 from mininet.node import (
@@ -48,17 +48,20 @@ from mininet.examples.cluster import ( MininetCluster, RemoteHost,
 from mininet.examples.clustercli import ClusterCLI
 
 # ==
-from distrinet.cloud.lxc_container import ( LxcNode )
-from distrinet.cloud.cloudswitch import LxcOVSSwitch 
-from distrinet.cloud.cloudlink import CloudLink
-from distrinet.distrinet import Distrinet
-from distrinet.cloud.cloudcontroller import (LxcRemoteController, OnosLxcController)
+from mininet.lxc_container import ( LxcNode )
+from mininet.cloudswitch import LxcOVSSwitch 
+from mininet.cloudlink import CloudLink
+from mininet.distrinet import Distrinet
+from mininet.cloudcontroller import (LxcRemoteController, OnosLxcController)
 
-from distrinet.dummymapper import DummyMapper
-from distrinet.topodc import (DumbbellTopo)
+from mininet.mapper.dummymapper import DummyMapper
+from mininet.topodc import (DumbbellTopo)
 
-from distrinet.cloud.awsprovision import (awsProvisionHelper, distrinetAWS)
-from distrinet.util import (default_images)
+from mininet.provision.awsprovision import (awsProvisionHelper, distrinetAWS)
+from mininet.dutil import (default_images)
+
+
+from mininet.provision.provision import Provision
 
 TOPOS.update({'dumbbell': DumbbellTopo})
 
@@ -77,8 +80,46 @@ PREBUILD = [default_images]
 
 CLI = None  # Set below if needed
 
+
+# XXX DSA - can't reuse directly the one from mn because TESTS is used...
+def runTests( mn, options ):
+    """Run tests
+       mn: Mininet object
+       option: list of test optinos """
+    # Split option into test name and parameters
+    for option in options:
+        # Multiple tests may be separated by '+' for now
+        for test in option.split( '+' ):
+            test, args, kwargs = splitArgs( test )
+            test = ALTSPELLING.get( test.lower(), test )
+            testfn = TESTS.get( test, test )
+            if callable( testfn ):
+                testfn( mn, *args, **kwargs )
+            elif hasattr( mn, test ):
+                mn.waitConnected()
+                getattr( mn, test )( *args, **kwargs )
+            else:
+                raise Exception( 'Test %s is unknown - please specify one of '
+                                 '%s ' % ( test, TESTS.keys() ) )
+
 class DistrinetRunner( MininetRunner ):
     "Build, setup, and run Mininet."
+
+    # XXX DSA - can't inherit it directly because of globals...
+    def setCustom( self, name, value ):
+        "Set custom parameters for MininetRunner."
+        if name in ( 'topos', 'switches', 'hosts', 'controllers', 'links'
+                     'testnames', 'tests' ):
+            # Update dictionaries
+            param = name.upper()
+            globals()[ param ].update( value )
+        elif name == 'validate':
+            # Add custom validate function
+            self.validate = value
+        else:
+            # Add or modify global variable or class
+            globals()[ name ] = value
+
 
     def setNat( self, _option, opt_str, value, parser ):
         "Set NAT option(s)"
@@ -270,7 +311,6 @@ class DistrinetRunner( MininetRunner ):
 
         # load default configuration
         if opts.provision or opts.workers:
-            from distrinet.cloud.provision import Provision
             conf = Provision.get_configurations()
             ssh_conf = conf["ssh"]
             pub_id = ssh_conf["pub_id"]
@@ -326,7 +366,6 @@ class DistrinetRunner( MininetRunner ):
             mapper = MAPPERS[ opts.mapper ](places=places)
             info ("*** Mapping: {}\n".format( mapper.places))
 
-
             if opts.provision or opts.workers:
                 for x in PREBUILD:
                     x(topo=topo)
@@ -373,7 +412,7 @@ class DistrinetRunner( MininetRunner ):
 
 
         # --custom files can set CLI or change mininet.cli.CLI
-        CLI = distrinet.cli.DCLI if CLI is None else CLI
+        CLI = DCLI if CLI is None else CLI
 
         if opts.pre:
             CLI( mn, script=opts.pre )

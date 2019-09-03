@@ -1,4 +1,4 @@
-from distrinet.cloud.lxc_container import (LxcNode)
+from mininet.lxc_container import (LxcNode)
 from mininet.link import Intf
 
 from mininet.link import Link, Intf, TCIntf, OVSIntf

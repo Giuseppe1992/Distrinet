@@ -1,4 +1,4 @@
-from distrinet.cloud.provision import Provision
+from mininet.provision.provision import Provision
 from time import sleep, time
 import boto3
 import os

@@ -1,8 +1,8 @@
 from mininet.log import lg, LEVELS, info, debug, warn, error, output
 
-from distrinet.cloud.lxc_container import (LxcNode)
+from mininet.lxc_container import (LxcNode)
 
-from distrinet.util import _info
+from mininet.dutil import _info
 
 
 class LxcController ( LxcNode ):

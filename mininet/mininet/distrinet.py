@@ -107,28 +107,28 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            waitListening, BaseString, encode )
 from mininet.term import cleanUpScreens, makeTerms
 
-# DSA ########################
-from distrinet.util import _info
-
-#from distrinet.cloud.cloudnode import (CloudHost, CloudController, CloudSwitch)
-from distrinet.cloud.cloudlink import (CloudLink)
 from mininet.link import (Intf, TCIntf)
-from distrinet.cloud.lxc_container import (LxcNode)
-from distrinet.cloud.cloudswitch import (LxcSwitch)
-from distrinet.cloud.cloudcontroller import (LxcRemoteController)
+
+# DSA ########################
+from mininet.dutil import _info
+
+from mininet.cloudlink import (CloudLink)
+from mininet.lxc_container import (LxcNode)
+from mininet.cloudswitch import (LxcSwitch)
+from mininet.cloudcontroller import (LxcRemoteController)
 
 
 import asyncio
 import time
 from threading import Thread
 
-from distrinet.cloud.assh import ASsh
+from mininet.assh import ASsh
 ##############################
 
 # Mininet version: should be consistent with README and LICENSE
-MININET_VERSION = "2.3.0d4"
+from mininet.net import VERSION as MININET_VERSION
 # Distrinet version
-VERSION = "2.0"
+VERSION = "2.0 (Mininet {})".format(MININET_VERSION)
 
 from mininet.net import Mininet
 
