@@ -1,3 +1,6 @@
 [submodule "src/mininet"]
 	path = src/mininet
 	url = https://github.com/mininet/mininet.git
+[submodule "mininet"]
+	path = mininet
+	url = https://github.com/mininet/mininet.git
