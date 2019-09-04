@@ -113,6 +113,8 @@ class distrinetAWS(Provision):
         ec2 = distrinetAWS.ec2Resource
         vpc = ec2.Vpc(vpcid)
         ec2client = ec2.meta.client
+
+
         # detach default dhcp_options if associated with the vpc
         dhcp_options_default = ec2.DhcpOptions('default')
         if dhcp_options_default:
@@ -121,15 +123,22 @@ class distrinetAWS(Provision):
             )
 
         # delete any instances
+        public_ips = []
         for subnet in vpc.subnets.all():
             for instance in subnet.instances.all():
                 instance.terminate()
+                badiubewfiusbfv
+
 
         # delete nat_gateways
+
         nat_gateways = ec2client.describe_nat_gateways(Filters=[{"Name":"vpc-id", "Values": [vpc.id]}])["NatGateways"]
         nat_ids = [nat['NatGatewayId']for nat in nat_gateways]
+        nat_ips = [address["PublicIp"] for nat in nat_gateways for address in nat["NatGatewayAddresses"]]
+
         for nat in nat_ids:
             ec2client.delete_nat_gateway(NatGatewayId=nat)
+
         # wait that all the nat gateways are in deleted state
         with progressbar.ProgressBar(max_value=len(nat_ids), prefix="Deleting the nat gateway") as bar:
             bar.update(0)
@@ -150,9 +159,9 @@ class distrinetAWS(Provision):
         i = 0
         for subnet in subnets:
             i += len(list(subnet.instances.all()))
-        with progressbar.ProgressBar(max_value=i, prefix="Deleting the instances",suffix="It needs some minutes") as bar:
+        with progressbar.ProgressBar(max_value=i, prefix="Deleting the instances", suffix="It needs some minutes") as bar:
             bar.update(0)
-            completed_hosts=0
+            completed_hosts = 0
             while True:
                 subnets = vpc.subnets.all()
                 instances = []
