@@ -29,7 +29,7 @@ setup(
     description='Distrinet v.1.1',
     data_files= [(".distrinet", ["conf/conf.yml"])],
     entry_points={
-        'console_scripts': ['dmn=src.dmn:main']},
+        'console_scripts': ['dmn=mininet.bin.dmn:main']},
     include_package_data = True,
     zip_safe = True
 )
