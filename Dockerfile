@@ -1,8 +1,7 @@
 # docker build -t distrinet:1.1 .
 FROM ubuntu:18.04
 MAINTAINER Giuseppe Di Lena (giuseppedilena92@gmail.com)
-RUN apt-get update && apt-get install -y software-properties-common vim && add-apt-repository ppa:jonathonf/python-3.6
-RUN apt-get update && apt-get install -y build-essential python3.6 python3.6-dev python3-pip python3.6-venv git
+RUN apt-get update && apt-get upgrade -y && apt-get install -y software-properties-common vim build-essential python3.6 python3-pip git
 # update pip
 RUN python3.6 -m pip install pip --upgrade
 WORKDIR /
