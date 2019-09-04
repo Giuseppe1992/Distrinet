@@ -17,6 +17,26 @@
         dest: ~/ubuntu.tar.gz
         mode: 0666
 
+
+    - name   : Download slave
+      get_url:
+        url : http://www-sop.inria.fr/members/Damien.Saucez/images/ubuntu-hadoop-slave.tar.gz
+        dest: ~/ubuntu-hadoop-slave.tar.gz
+        mode: 0666
+
+    - name   : Download master
+      get_url:
+        url : http://www-sop.inria.fr/members/Damien.Saucez/images/ubuntu-hadoop-master.tar.gz
+        dest: ~/ubuntu-hadoop-master.tar.gz
+        mode: 0666
+
+    - name: Download onos-image
+      get_url:
+        url: http://www-sop.inria.fr/members/Damien.Saucez/images/ubuntu-onos-2.1.0.tar.gz
+        dest: ~/ubuntu-onos-2.1.0.tar.gz
+        mode: 0666
+
+
 - hosts      : all
   remote_user: root
   tasks      :

@@ -42,9 +42,10 @@ where
 
 where
 
-* `<ip>` is an address reachable on the admin network where an OpenFlow controller listens
-* `<admin_ip>` is the admin IP address for the container
-* `<target_ip>` is the IP of the node where to deploy the container
+
+* `<ip>` is an address reachable on the admin network where an OpenFlow controller listens,
+* `<admin_ip>` is the admin IP address for the container,
+* `<target_ip>` is the IP of the node where to deploy the container.
 
 
 # Port forwarding

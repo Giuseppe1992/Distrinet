@@ -2,7 +2,9 @@
 
 """
 Dininet runner
-author: Damien Saucez (damien.saucez@gmail.com) initial author: Brandon Heller (brandonh@stanford.edu)
+
+author: Damien Saucez (damien.saucez@gmail.com)
+author: Brandon Heller (brandonh@stanford.edu)
 
 To see options:
   dmn -h
@@ -21,6 +23,7 @@ if 'PYTHONPATH' in os.environ:
     sys.path = os.environ[ 'PYTHONPATH' ].split( ':' ) + sys.path
 
 from mininet.clean import cleanup
+
 import mininet.cli
 from mininet.log import lg, LEVELS, info, debug, warn, error, output
 from mininet.net import Mininet, MininetWithControlNet, VERSION
@@ -35,6 +38,7 @@ from mininet.topo import ( SingleSwitchTopo, LinearTopo,
                            SingleSwitchReversedTopo, MinimalTopo )
 from mininet.topolib import TreeTopo, TorusTopo
 from mininet.util import customClass, specialClass, splitArgs
+
 from mininet.util import buildTopo
 
 from functools import partial
@@ -168,6 +172,7 @@ from mininet.topodc import (DumbbellTopo)
 from mininet.provision.awsprovision import (awsProvisionHelper, distrinetAWS)
 from mininet.dutil import (default_images)
 from mininet.dcli import (DCLI)
+
 
 
 from mininet.provision.provision import Provision

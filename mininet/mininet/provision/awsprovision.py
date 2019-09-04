@@ -113,6 +113,7 @@ class distrinetAWS(Provision):
         ec2 = distrinetAWS.ec2Resource
         vpc = ec2.Vpc(vpcid)
         ec2client = ec2.meta.client
+
         # detach default dhcp_options if associated with the vpc
         dhcp_options_default = ec2.DhcpOptions('default')
         if dhcp_options_default:
@@ -121,15 +122,25 @@ class distrinetAWS(Provision):
             )
 
         # delete any instances
+        public_ips = []
         for subnet in vpc.subnets.all():
             for instance in subnet.instances.all():
+                if instance.public_ip_address:
+                    public_ips.append(instance.public_ip_address)
                 instance.terminate()
 
         # delete nat_gateways
         nat_gateways = ec2client.describe_nat_gateways(Filters=[{"Name":"vpc-id", "Values": [vpc.id]}])["NatGateways"]
         nat_ids = [nat['NatGatewayId']for nat in nat_gateways]
+
+        for nat in nat_gateways:
+            for address in nat["NatGatewayAddresses"]:
+                if "PublicIp" in address.keys():
+                    public_ips.append(address["PublicIp"])
+
         for nat in nat_ids:
             ec2client.delete_nat_gateway(NatGatewayId=nat)
+
         # wait that all the nat gateways are in deleted state
         with progressbar.ProgressBar(max_value=len(nat_ids), prefix="Deleting the nat gateway") as bar:
             bar.update(0)
@@ -150,9 +161,10 @@ class distrinetAWS(Provision):
         i = 0
         for subnet in subnets:
             i += len(list(subnet.instances.all()))
-        with progressbar.ProgressBar(max_value=i, prefix="Deleting the instances",suffix="It needs some minutes") as bar:
+
+        with progressbar.ProgressBar(max_value=i, prefix="Deleting the instances", suffix="It needs some minutes") as bar:
             bar.update(0)
-            completed_hosts=0
+            completed_hosts = 0
             while True:
                 subnets = vpc.subnets.all()
                 instances = []
@@ -166,8 +178,13 @@ class distrinetAWS(Provision):
                 bar.update(completed_hosts)
                 sleep(1)
 
-        # make sure that the elastic ip addresses are out not linked to the vpc
+        # make sure that the elastic ip addresses are not linked to the vpc
         sleep(5)
+        # delete elasticIp
+        address_description = ec2client.describe_addresses(PublicIps=public_ips)["Addresses"]
+        allocation_id_ips = [ip["AllocationId"]for ip in address_description]
+        for id_ in allocation_id_ips:
+            ec2client.release_address(AllocationId=id_)
 
         # detach and delete all gateways associated with the vpc
         for gw in vpc.internet_gateways.all():
@@ -380,7 +397,7 @@ class distrinetAWS(Provision):
         :param instanceType: Type of instance that you want to run
         :param KeyName: KeyName present in your account
         :param ImageId: Image AMI id provided by Amazon AWS
-        :param kwargs: Oprional parameters to personalize your image, the correct documentation can be found at:
+        :param kwargs: Optional parameters to personalize your image, the correct documentation can be found at:
         https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Client.run_instances
         :return: RunInstances Client response, boto3.client('ec2').run_instances()
         """
@@ -744,19 +761,20 @@ def awsProvisionHelper(*args, instanceType='t3.2xlarge', volumeSize=50, **kwargs
 if __name__ == '__main__':
     o = distrinetAWS(VPCName="DEMO-", addressPoolVPC="10.0.0.0/16", publicSubnetNetwork='10.0.0.0/24',
                      privateSubnetNetwork='10.0.1.0/24',
-                     bastionHostDescription={'instanceType': 't3.2xlarge',
+
+                     bastionHostDescription={'instanceType': 't2.micro',
 
 
                                              "BlockDeviceMappings": [
-                                                 {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 8}}
+                                                 {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 15}}
                                              ]
                                              },
-                     workersHostsDescription=[{"numberOfInstances": 2, 'instanceType': 't3.2xlarge',
+                     workersHostsDescription=[{"numberOfInstances": 2, 'instanceType': 't2.micro',
                                                "BlockDeviceMappings": [
-                                                   {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 8}}]}
+                                                   {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 15}}]}
                                              ])
 
     o.deploy()
-
     #input()
     #distrinetAWS.removeVPC("vpc-0e603975c640e7778")
+
