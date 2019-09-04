@@ -47,11 +47,11 @@
         src  : ~/ubuntu-hadoop-slave.tar.gz
         dest : ~/ubuntu-hadoop-slave.tar.gz
 
+
     - name   : distribute onos image
       copy   :
         src  : ~/ubuntu-onos-2.1.0.tar.gz
         dest : ~/ubuntu-onos-2.1.0.tar.gz
-
 
 - hosts      : all
   remote_user: root

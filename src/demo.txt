@@ -1,2 +1,0 @@
-python3 dmn --bastion 35.181.159.173 --workers=10.0.0.244,10.0.1.28,10.0.1.54,10.0.1.166 --topo=tree,2 --controller=lxcremote,ip=192.168.0.1
-python3 dmn --bastion 35.181.159.173 --workers=10.0.0.244,10.0.1.28,10.0.1.54,10.0.1.166 --topo=tree,2 --controller=onoslxc,ip=192.168.0.250,admin_ip=192.168.0.250,target=10.0.0.244
