@@ -37,6 +37,7 @@ class Provision (object):
         :return: execute.command result, see executeCommand() Documentation
         """
         command = 'ansible-playbook {}/configure-lxd-no-clustering.yml'.format(PlaybookPath)
+
         return Provision.executeCommand(SshSession=SshSession, command=command)
 
     @staticmethod

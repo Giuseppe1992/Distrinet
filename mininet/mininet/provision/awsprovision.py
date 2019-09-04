@@ -132,6 +132,7 @@ class distrinetAWS(Provision):
         # delete nat_gateways
         nat_gateways = ec2client.describe_nat_gateways(Filters=[{"Name":"vpc-id", "Values": [vpc.id]}])["NatGateways"]
         nat_ids = [nat['NatGatewayId']for nat in nat_gateways]
+
         for nat in nat_gateways:
             for address in nat["NatGatewayAddresses"]:
                 if "PublicIp" in address.keys():
@@ -160,6 +161,7 @@ class distrinetAWS(Provision):
         i = 0
         for subnet in subnets:
             i += len(list(subnet.instances.all()))
+
         with progressbar.ProgressBar(max_value=i, prefix="Deleting the instances", suffix="It needs some minutes") as bar:
             bar.update(0)
             completed_hosts = 0
@@ -759,6 +761,7 @@ def awsProvisionHelper(*args, instanceType='t3.2xlarge', volumeSize=50, **kwargs
 if __name__ == '__main__':
     o = distrinetAWS(VPCName="DEMO-", addressPoolVPC="10.0.0.0/16", publicSubnetNetwork='10.0.0.0/24',
                      privateSubnetNetwork='10.0.1.0/24',
+
                      bastionHostDescription={'instanceType': 't2.micro',
 
 
@@ -772,6 +775,6 @@ if __name__ == '__main__':
                                              ])
 
     o.deploy()
+    #input()
+    #distrinetAWS.removeVPC("vpc-0e603975c640e7778")
 
-    input()
-    distrinetAWS.removeVPC("vpc-0530e2239e67dfcd9")
