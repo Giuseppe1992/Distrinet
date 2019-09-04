@@ -2,8 +2,7 @@
 
 """
 Dininet runner
-author: Damien Saucez (damien.saucez@gmail.com)
-author: Brandon Heller (brandonh@stanford.edu)
+author: Damien Saucez (damien.saucez@gmail.com) initial author: Brandon Heller (brandonh@stanford.edu)
 
 To see options:
   dmn -h
@@ -11,13 +10,6 @@ To see options:
 Example to pull custom params (topo, switch, etc.) from a file:
   mn --custom ~/mininet/custom/custom_example.py
 """
-
-import imp
-imp.load_source('mnbin', 'bin/mn')
-
-from mnbin import (MininetRunner)
-from mnbin import (version, addDictOption, TESTS, ALTSPELLING, LINKS, LINKDEF, CONTROLLERS, HOSTS, HOSTDEF, SWITCHES, SWITCHDEF, TOPOS, TOPODEF, PLACEMENT)
-
 
 from optparse import OptionParser
 import os
@@ -29,14 +21,20 @@ if 'PYTHONPATH' in os.environ:
     sys.path = os.environ[ 'PYTHONPATH' ].split( ':' ) + sys.path
 
 from mininet.clean import cleanup
-from mininet.dcli import DCLI
+import mininet.cli
 from mininet.log import lg, LEVELS, info, debug, warn, error, output
 from mininet.net import Mininet, MininetWithControlNet, VERSION
-from mininet.node import (
-                           findController,
-                           )
-from mininet.link import Link, TCLink
-from mininet.util import customClass, splitArgs
+from mininet.node import ( Host, CPULimitedHost, Controller, OVSController,
+                           Ryu, NOX, RemoteController, findController,
+                           DefaultController, NullController,
+                           UserSwitch, OVSSwitch, OVSBridge,
+                           IVSSwitch )
+from mininet.nodelib import LinuxBridge
+from mininet.link import Link, TCLink, TCULink, OVSLink
+from mininet.topo import ( SingleSwitchTopo, LinearTopo,
+                           SingleSwitchReversedTopo, MinimalTopo )
+from mininet.topolib import TreeTopo, TorusTopo
+from mininet.util import customClass, specialClass, splitArgs
 from mininet.util import buildTopo
 
 from functools import partial
@@ -44,44 +42,77 @@ from functools import partial
 # Experimental! cluster edition prototype
 from mininet.examples.cluster import ( MininetCluster, RemoteHost,
                                        RemoteOVSSwitch, RemoteLink,
+                                       SwitchBinPlacer, RandomPlacer,
                                        ClusterCleanup )
 from mininet.examples.clustercli import ClusterCLI
 
-# ==
-from mininet.lxc_container import ( LxcNode )
-from mininet.cloudswitch import LxcOVSSwitch 
-from mininet.cloudlink import CloudLink
-from mininet.distrinet import Distrinet
-from mininet.cloudcontroller import (LxcRemoteController, OnosLxcController)
+PLACEMENT = { 'block': SwitchBinPlacer, 'random': RandomPlacer }
 
-from mininet.mapper.dummymapper import DummyMapper
-from mininet.topodc import (DumbbellTopo)
+# built in topologies, created only when run
+TOPODEF = 'minimal'
+TOPOS = { 'minimal': MinimalTopo,
+          'linear': LinearTopo,
+          'reversed': SingleSwitchReversedTopo,
+          'single': SingleSwitchTopo,
+          'tree': TreeTopo,
+          'torus': TorusTopo }
 
-from mininet.provision.awsprovision import (awsProvisionHelper, distrinetAWS)
-from mininet.dutil import (default_images)
+SWITCHDEF = 'default'
+SWITCHES = { 'user': UserSwitch,
+             'ovs': OVSSwitch,
+             'ovsbr' : OVSBridge,
+             # Keep ovsk for compatibility with 2.0
+             'ovsk': OVSSwitch,
+             'ivs': IVSSwitch,
+             'lxbr': LinuxBridge,
+             'default': OVSSwitch }
 
+HOSTDEF = 'proc'
+HOSTS = { 'proc': Host,
+          'rt': specialClass( CPULimitedHost, defaults=dict( sched='rt' ) ),
+          'cfs': specialClass( CPULimitedHost, defaults=dict( sched='cfs' ) ) }
 
-from mininet.provision.provision import Provision
+CONTROLLERDEF = 'default'
+CONTROLLERS = { 'ref': Controller,
+                'ovsc': OVSController,
+                'nox': NOX,
+                'remote': RemoteController,
+                'ryu': Ryu,
+                'default': DefaultController,  # Note: overridden below
+                'none': NullController }
 
-TOPOS.update({'dumbbell': DumbbellTopo})
+LINKDEF = 'default'
+LINKS = { 'default': Link,  # Note: overridden below
+          'tc': TCLink,
+          'tcu': TCULink,
+          'ovs': OVSLink }
 
-CONTROLLERS.update({'lxcremote': LxcRemoteController,
-                    'onoslxc': OnosLxcController})
-
-
-# == 
-MAPPERDEF = 'dummymapper' 
-MAPPERS = { 'dummymapper': DummyMapper }
-
-PROVISIONDEF = 'aws'
-PROVISIONS = { 'aws': awsProvisionHelper }
-
-PREBUILD = [default_images]
+# TESTS dict can contain functions and/or Mininet() method names
+# XXX: it would be nice if we could specify a default test, but
+# this may be tricky
+TESTS = { name: True
+          for name in ( 'pingall', 'pingpair', 'iperf', 'iperfudp' ) }
 
 CLI = None  # Set below if needed
 
+# Locally defined tests
+def allTest( net ):
+    "Run ping and iperf tests"
+    net.waitConnected()
+    net.start()
+    net.ping()
+    net.iperf()
 
-# XXX DSA - can't reuse directly the one from mn because TESTS is used...
+def nullTest( _net ):
+    "Null 'test' (does nothing)"
+    pass
+
+TESTS.update( all=allTest, none=nullTest, build=nullTest )
+
+# Map to alternate spellings of Mininet() methods
+ALTSPELLING = { 'pingall': 'pingAll', 'pingpair': 'pingPair',
+                'iperfudp': 'iperfUdp' }
+
 def runTests( mn, options ):
     """Run tests
        mn: Mininet object
@@ -102,10 +133,101 @@ def runTests( mn, options ):
                 raise Exception( 'Test %s is unknown - please specify one of '
                                  '%s ' % ( test, TESTS.keys() ) )
 
-class DistrinetRunner( MininetRunner ):
+
+def addDictOption( opts, choicesDict, default, name, **kwargs ):
+    """Convenience function to add choices dicts to OptionParser.
+       opts: OptionParser instance
+       choicesDict: dictionary of valid choices, must include default
+       default: default choice key
+       name: long option name
+       kwargs: additional arguments to add_option"""
+    helpStr = ( '|'.join( sorted( choicesDict.keys() ) ) +
+                '[,param=value...]' )
+    helpList = [ '%s=%s' % ( k, v.__name__ )
+                 for k, v in choicesDict.items() ]
+    helpStr += ' ' + ( ' '.join( helpList ) )
+    params = dict( type='string', default=default, help=helpStr )
+    params.update( **kwargs )
+    opts.add_option( '--' + name, **params )
+
+def version( *_args ):
+    "Print Mininet version and exit"
+    output( "%s\n" % VERSION )
+    exit()
+
+# ==
+from mininet.lxc_container import ( LxcNode )
+from mininet.cloudswitch import LxcOVSSwitch 
+from mininet.cloudlink import CloudLink
+from mininet.distrinet import Distrinet
+from mininet.cloudcontroller import (LxcRemoteController, OnosLxcController)
+
+from mininet.mapper.dummymapper import DummyMapper
+from mininet.topodc import (DumbbellTopo)
+
+from mininet.provision.awsprovision import (awsProvisionHelper, distrinetAWS)
+from mininet.dutil import (default_images)
+from mininet.dcli import (DCLI)
+
+
+from mininet.provision.provision import Provision
+
+TOPOS.update({'dumbbell': DumbbellTopo})
+
+CONTROLLERS.update({'lxcremote': LxcRemoteController,
+                    'onoslxc': OnosLxcController})
+
+
+# == 
+MAPPERDEF = 'dummymapper' 
+MAPPERS = { 'dummymapper': DummyMapper }
+
+PROVISIONDEF = 'aws'
+PROVISIONS = { 'aws': awsProvisionHelper }
+
+PREBUILD = [default_images]
+# ============================================================================
+
+
+
+class DistrinetRunner( object ):
     "Build, setup, and run Mininet."
 
-    # XXX DSA - can't inherit it directly because of globals...
+    def __init__( self ):
+        "Init."
+        self.options = None
+        self.args = None  # May be used someday for more CLI scripts
+        self.validate = None
+
+        self.parseArgs()
+        self.setup()
+        self.begin()
+
+    def custom( self, _option, _opt_str, value, _parser ):
+        """Parse custom file and add params.
+           option: option e.g. --custom
+           opt_str: option string e.g. --custom
+           value: the value the follows the option
+           parser: option parser instance"""
+        files = []
+        if os.path.isfile( value ):
+            # Accept any single file (including those with commas)
+            files.append( value )
+        else:
+            # Accept a comma-separated list of filenames
+            files += value.split(',')
+
+        for fileName in files:
+            customs = {}
+            if os.path.isfile( fileName ):
+                # pylint: disable=exec-used
+                exec( compile( open( fileName ).read(), fileName, 'exec' ),
+                      customs, customs )
+                for name, val in customs.items():
+                    self.setCustom( name, val )
+            else:
+                raise Exception( 'could not find custom file: %s' % fileName )
+
     def setCustom( self, name, value ):
         "Set custom parameters for MininetRunner."
         if name in ( 'topos', 'switches', 'hosts', 'controllers', 'links'
@@ -135,7 +257,6 @@ class DistrinetRunner( MininetRunner ):
             parser.values.nat_args = []
             parser.values.nat_kwargs = {}
 
-    # XXX - DSA cant' call super because of the exit in mn...
     def parseArgs( self ):
         """Parse command-line args and return options object.
            returns: opts parse options dict"""
@@ -230,7 +351,20 @@ class DistrinetRunner( MininetRunner ):
             opts.print_help()
             exit()
 
-    # XXX - DSA can't use super because the method is not decomposed enough in mn
+    def setup( self ):
+        "Setup and validate environment."
+
+        # set logging verbosity
+        if LEVELS[self.options.verbosity] > LEVELS['output']:
+            warn( '*** WARNING: selected verbosity level (%s) will hide CLI '
+                    'output!\n'
+                    'Please restart Mininet with -v [debug, info, output].\n'
+                    % self.options.verbosity )
+        lg.setLogLevel( self.options.verbosity )
+
+    # Maybe we'll reorganize this someday...
+    # pylint: disable=too-many-branches,too-many-statements,global-statement
+
     def begin( self ):
         "Create and run mininet."
 
