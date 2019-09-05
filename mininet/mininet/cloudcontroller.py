@@ -73,9 +73,19 @@ class LxcController ( LxcNode ):
 
 class OnosLxcController ( LxcController ):
     def __init__( self, name,
-                  loop, admin_ip, master,
+                  loop, admin_ip=None, master=None,
                   image='ubuntu-onos-2.1.0',
                   **params):
+        assert (master is not None)
+        assert (('ip' in params) or (admin_ip is not None)), "provide at least an ip or an admin_ip"
+
+        if 'target' not in params:
+            params.update({'target':master.host})
+        if admin_ip is None:
+            admin_ip = params.get('ip')
+        if 'ip' not in params:
+            params.update({'ip':admin_ip})
+
         super(OnosLxcController, self).__init__(name=name, loop=loop, admin_ip=admin_ip, master=master, image=image, **params)
 
     def start( self ):
