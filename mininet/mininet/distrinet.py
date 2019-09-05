@@ -646,7 +646,7 @@ class Distrinet( Mininet ):
 
             for node in nodes:
                 _info ("startshell {} ".format( node.name) )
-                node.startShell(waitStart=False)
+                node.asyncStartShell()
             for node in nodes:
                 node.waitStarted()
                 _info ("startedshell {}".format( node.name))

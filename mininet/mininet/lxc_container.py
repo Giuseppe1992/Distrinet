@@ -134,30 +134,6 @@ class LxcNode (Node):
         # good old Mininet
         super(LxcNode, self).__init__(name=name, inNamespace=inNamespace, **params)
 
-        # TODO DSA - be backward compatible with sequential deployment
-        if waitStart:
-            
-            info ("{} Connecting to the target {}".format(self, self.target))
-            self.connectTarget()
-            self.waitConnectedTarget()
-            info (" connected ")
-
-            self.createContainer(**params)
-            self.waitCreated()
-            self.addContainerInterface(intfName="admin", brname="admin-br")
-            self.connectToAdminNetwork(master=self.masternode.host, target=self.target, link_id=CloudLink.newLinkId(), admin_br="admin-br")
-
-            self.configureContainer()
-            self.connect()
-            self.waitConnected()
-            self.startShell(waitStart=False)
-            print ("ICI", self.name)
-            self.waitStarted()
-            print ("LA", self.name)
-            self.finalizeStartShell()
-            print ("LA2",self.name)
-            info (" started\n")
-            
         ## ====================================================================
 
     def _preInit(self,
@@ -450,15 +426,30 @@ class LxcNode (Node):
 
     ## == mininet =============================================================
 
-    def startShell( self, mnopts=None, waitStart=True):
-        if waitStart:
-            print ("startShell HERE")
-        else:
-            self.TESTstartShell(mnopts=mnopts)
+    def startShell( self, mnopts=None):
+        if self.waitStart:
+            # TODO DSA - be backward compatible with sequential deployment
+            info ("{} Connecting to the target {}".format(self, self.target))
+            self.connectTarget()
+            self.waitConnectedTarget()
+            info (" connected ")
+
+            self.createContainer(**self.params)
+            self.waitCreated()
+            self.addContainerInterface(intfName="admin", brname="admin-br")
+            self.connectToAdminNetwork(master=self.masternode.host, target=self.target, link_id=CloudLink.newLinkId(), admin_br="admin-br")
+
+            self.configureContainer()
+            self.connect()
+            self.waitConnected()
+            self.asyncStartShell()
+            self.waitStarted()
+            self.finalizeStartShell()
+            info (" started\n")
 
 
     # Command support via shell process in namespace
-    def TESTstartShell( self, mnopts=None ):
+    def asyncStartShell( self, mnopts=None ):
 
         async def run_shell():
             async def trick(shell, stdin):

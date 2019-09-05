@@ -85,7 +85,8 @@ class OnosLxcController ( LxcController ):
         if self.cdir is not None:
             self.cmd( 'cd ' + self.cdir )
         info ( " starting Onos ")
-        self.cmd("source ~/.bashrc; nohup /opt/onos-2.1.0/bin/onos-service start >& /tmp/controller.dat &")
+        self.cmd("ln -s /root/jdk-11.0.1/bin/java /usr/bin/java")
+        self.cmd("nohup /opt/onos-2.1.0/bin/onos-service start >& /tmp/controller.dat &")
         import time
         time.sleep(25)
         info ( " installing Onos Apps")
