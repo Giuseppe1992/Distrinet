@@ -343,8 +343,8 @@ class DistrinetRunner( object ):
                          metavar='dummymapper',
                          help=( 'node mapping for --workers '
                                 '(experimental!) ' ) )
-        opts.add_option("--bunga", dest="bunga",
-                          help="VPC ID", metavar="bunga")
+        opts.add_option("--purge", dest="purge",
+                          help="VPC ID", metavar="purge")
         addDictOption( opts, PROVISIONS, None, 'provision' )
         # =====================================================================
 
@@ -387,10 +387,10 @@ class DistrinetRunner( object ):
             exit()
 
         # == distrinet
-        if opts.bunga:
-            warn(" ** experimental bunga! \n")
-            distrinetAWS.removeVPC(VpcId=opts.bunga) 
-            warn(" That bunga made Pepe happy \n")
+        if opts.purge:
+            warn(" ** experimental purge! \n")
+            distrinetAWS.removeVPC(VpcId=opts.purge)
+            warn(f" VPC: {opts.purge} deleted \n")
             exit()
 
         start = time.time()

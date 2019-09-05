@@ -192,23 +192,7 @@ docker attach distrinet
 Here we explain how to run a simple experiment.
 
 #### Case 1: you have not deployed Distrinet before
-In this case Distrinet will deploy the virtual instances for you automatically. There an example file on Distrinet/v2/mininet/iperf_test.py
-* Go to Distrinet/v2/mininet/
-```
-cd  Distrinet/src/
-```
-
-* you need to edit some lines; you can use the editor that you prefer. in this case I am using vim.
-```
-vim iperf_test.py
-```
-
-* You are ready to run your first Distrinet experiment :-)
-```
-python3 iperf_test.py --pub-id="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDgEnskmrOMpOht9KZV2rIYYLKkw4BSd8jw4t9cJKclE9BEFyPFr4H4O0KR85BP64dXQgAYumHv9ufnNe1jntLhilFql2uXmLcaJv5nDFdn7YEd01GUN2QUkNy6yguTO8QGmqnpKYxYiKz3b8mWDWY2vXaPvtHksaGJu2BFranA3dEuCFsVEP4U295z6LfG3K0vr+M0xawhJ8GRUnX+EyjK5rCOn0Nc04CmSVjIpNazyXyni4cW4q8FUADtxoi99w9fVIlFcdMAgoS65FxAxOF11bM6EzbJczdN4d9IjS4NPBqcWjwCH14ZWUAXvv3t090tUQOLGdDOih+hhPjHTAZt root@7349f78b2047" -n 4
-```
-In --pub-id you have to specify the id_rsa.pub created before (in this version you have to specify, we will make it easier in the next version).
-With -n you specify the number of virtual host in a Dumb Bell topology, so it has to be multiple of 2.
+ TODO: adapt with the new version
 
 ## Deployment
 
