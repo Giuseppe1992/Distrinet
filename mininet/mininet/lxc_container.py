@@ -9,7 +9,7 @@ from time import sleep
 from mininet.log import info, error, warn, debug
 from mininet.util import ( quietRun, errRun, errFail, moveIntf, isShellBuiltin,
                            numCores, retry, mountCgroups, BaseString, decode,
-                           encode, Python3, which )
+                           encode, getincrementaldecoder, Python3, which )
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, OVSIntf
 
@@ -90,7 +90,7 @@ class LxcNode (Node):
                        master,
                        target=None, port=22, username=None, pub_id=None,
                        bastion=None, bastion_port=22, client_keys=None,
-                       waitStart=True,
+                       waitStart=True, inNamespace=False,
                        **params):
         """
         Parameters
@@ -121,15 +121,35 @@ class LxcNode (Node):
         waitStart : bool
             should we block while waiting for the node to be started (default is True)
         """
+        # == distrinet
+        self._preInit(loop=loop,
+                   admin_ip=admin_ip,
+                   master=master,
+                   target=target, port=port, username=username, pub_id=pub_id,
+                   bastion=bastion, bastion_port=bastion_port, client_keys=client_keys,
+                   waitStart=waitStart,
+                   **params)
+        # =====================================================================
 
-        # name of the node
-        self.name = params.get('name', name)
+        # good old Mininet
+        super(LxcNode, self).__init__(name=name, inNamespace=inNamespace, **params)
 
-        # the node runs
+        ## ====================================================================
+
+    def _preInit(self,
+                   loop,
+                   admin_ip,
+                   master,
+                   target=None, port=22, username=None, pub_id=None,
+                   bastion=None, bastion_port=22, client_keys=None,
+                   waitStart=True,
+                   **params):
         self.run = True
-
         # asyncio loop
         self.loop = loop
+
+        # are we blocking
+        self.waitStart = waitStart
 
         # LXC host information
         self.target = target
@@ -142,27 +162,14 @@ class LxcNode (Node):
         self.bastion = bastion
         self.bastion_port = bastion_port
 
-        # current task in execution
-        self.task = None
-
-        # are we waiting for a task to be executed
-        self.waiting = False
-
-        self.readbuf = ''
-
-        # Shell and its I/Os
-        self.shell = None
-        self.stdin = None
-        self.stdout = None
-        self.stderr = None
-
         # IP address to use to administrate the machine
         self.admin_ip = admin_ip
 
-        self.master = master
+        self.masternode = master
         self.containerInterfaces = {}
         self.containerLinks = {}
 
+        # constraints on the deployment
         self.image = params.get("image", None)
         self.memory = params.get("memory", None)
         self.cpu = params.get("cpu", None)
@@ -171,83 +178,15 @@ class LxcNode (Node):
         self.devices = []
         self.devicesMaster = []
 
-        ## == mininet =========================================================
-        # Make sure class actually works
-        self.checkSetup()
-
-        self.name = params.get( 'name', name )
-        self.privateDirs = params.get( 'privateDirs', [] )
-        # self.inNamespace = params.get( 'inNamespace', inNamespace )
-
-        # Python 3 complains if we don't wait for shell exit
-        self.waitExited = params.get( 'waitExited', Python3 )
-
-        # Stash configuration parameters for future reference
-        self.params = params
-
-        self.intfs = {}  # dict of port numbers to interfaces
-        self.ports = {}  # dict of interfaces to port numbers
-                         # replace with Port objects, eventually ?
-        self.nameToIntf = {}  # dict of interface names to Intfs
-
-        # Make pylint happy
-        ( self.shell, self.execed, self.pid, self.stdin, self.stdout,
-            self.lastPid, self.lastCmd, self.pollOut ) = (
-                None, None, None, None, None, None, None, None )
-        self.waiting = False
-        self.readbuf = ''
-
-
-        self.inNamespace = False
-#####        # Start command interpreter shell
-#####        self.master, self.slave = None, None  # pylint
-
+        # prepare the machine
         # SSH with the target
         if self.target:
             self.targetSsh = ASsh(loop=self.loop, host=self.target, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
-        # when no target, use the master node as anchor point
-        else:
-            assert (False)
-            self.targetSsh = ASsh(loop=self.loop, host=self.master.host, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
         # SSH with the node
         admin_ip = self.admin_ip
         if "/" in admin_ip:
                 admin_ip, prefix = admin_ip.split("/")
         self.ssh = ASsh(loop=self.loop, host=admin_ip, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
-
-        if waitStart:
-            
-            info ("{} Connecting to the target {}".format(self, self.target))
-            self.connectTarget()
-            self.waitConnectedTarget()
-            info (" connected ")
-
-            self.createContainer(**params)
-            self.waitCreated()
-            self.addContainerInterface(intfName="admin", brname="admin-br")
-            self.connectToAdminNetwork(master=self.master.host, target=self.target, link_id=CloudLink.newLinkId(), admin_br="admin-br")
-
-            self.configureContainer()
-            self.connect()
-            self.waitConnected()
-            self.startShell(waitStart=waitStart)
-            info (" started\n")
-            
-        ## ====================================================================
-# ===================================<??????????????????
-
-    def whereIsDeployed(self):
-        """
-        Returns
-        -------
-        str
-            on which host in the LXC cluster the node is deployed
-        """
-
-        cmd = "lxc info %s | grep 'Location' | awk '{print $2}'" % (self.name)
-        res = self.targetSsh.cmd(cmd)
-        return res.rstrip()
-
 
     def configureContainer(self, adminbr="admin-br", wait=True):
 #        # connect the node to the admin network
@@ -256,7 +195,7 @@ class LxcNode (Node):
         # connect the target to the admin network
 #        if not self.target in self.__class__.connectedToAdminNetwork:
 #            print (self.target, "not connected yet to admin")
-#            self.connectToAdminNetwork(master=self.master.host, target=self.target, link_id=CloudLink.newLinkId(), admin_br=adminbr)
+#            self.connectToAdminNetwork(master=self.masternode.host, target=self.target, link_id=CloudLink.newLinkId(), admin_br=adminbr)
 #            self.__class__.connectedToAdminNetwork[self.target] = True
 #        else:
 #            print (self.target, "already connected to admin")
@@ -298,7 +237,7 @@ class LxcNode (Node):
         if ipmatch:
             return ipmatch[ 0 ]
         # Otherwise, look up remote server
-        output = self.master.cmd('getent ahostsv4 {}'.format(name))
+        output = self.masternode.cmd('getent ahostsv4 {}'.format(name))
 
         ips = _ipMatchRegex.findall( output )
 
@@ -389,7 +328,7 @@ class LxcNode (Node):
             self.devices.append(vxlan_name)
 #            print ("master".format(vxlan_name),cmd)
 #            if wait:
-#                self.master.cmd(cmd)
+#                self.masternode.cmd(cmd)
 #                cmds = []
         return cmds
 
@@ -487,73 +426,65 @@ class LxcNode (Node):
 
     ## == mininet =============================================================
 
-    # XXX - OK
-    # Command support via shell process in namespace
-    def startShell( self, mnopts=None, waitStart=True):
-        """
-        Starts a shell on the node
+    def startShell( self, mnopts=None):
+        if self.waitStart:
+            # TODO DSA - be backward compatible with sequential deployment
+            info ("{} Connecting to the target {}".format(self, self.target))
+            self.connectTarget()
+            self.waitConnectedTarget()
+            info (" connected ")
 
-        Parameters
-        ----------
-        waitStart : bool
-            block until the shell is actually started (default is True).
-        
-        NOTE
-        ----
-        If waitStart is False, make sure to wait for the shell to start before
-        using it (e.g., by calling the `node.waitStarted()`) and to run
-        `node.finalizeStartShell()` once started and before using the shell.
-        """
+            self.createContainer(**self.params)
+            self.waitCreated()
+            self.addContainerInterface(intfName="admin", brname="admin-br")
+            self.connectToAdminNetwork(master=self.masternode.host, target=self.target, link_id=CloudLink.newLinkId(), admin_br="admin-br")
+
+            self.configureContainer()
+            self.connect()
+            self.waitConnected()
+            self.asyncStartShell()
+            self.waitStarted()
+            self.finalizeStartShell()
+            info (" started\n")
+
+
+    # Command support via shell process in namespace
+    def asyncStartShell( self, mnopts=None ):
+
+        async def run_shell():
+            async def trick(shell, stdin):
+                while self.run:
+                    c = await shell.stdout.read(n=1)
+                    os.write(stdin.fileno(), c.encode('utf-8'))
+
+            # Spawn a shell subprocess in a pseudo-tty, to disable buffering
+            # in the subprocess and insulate it from signals (e.g. SIGINT)
+            # received by the parent
+            self.master, self.slave = pty.openpty()
+
+            bash = "bash --rcfile <( echo 'PS1=\x7f') --noediting -is mininet:{}".format(self.name)
+            self.shell = await self.ssh.conn.create_process(bash, stdin=self.slave, stdout=self.slave, stderr=self.slave)
+
+            self.stdin = os.fdopen(self.master, 'r')
+            self.stdout = self.stdin
+
+            self.pollOut = select.poll()
+            self.pollOut.register( self.stdout )
+
+            # Maintain mapping between file descriptors and nodes
+            # This is useful for monitoring multiple nodes
+            # using select.poll()
+            self.outToNode[ self.stdout.fileno() ] = self
+            self.inToNode[ self.stdin.fileno() ] = self
+
+            await trick(self.shell, self.stdin)
+
         "Start a shell process for running commands"
         if self.shell:
             error( "%s: shell is already running\n" % self.name )
             return
-##        # mnexec: (c)lose descriptors, (d)etach from tty,
-##        # (p)rint pid, and run in (n)amespace
-##        opts = '-cd' if mnopts is None else mnopts
-##        if self.inNamespace:
-##            opts += 'n'
-##        # bash -i: force interactive
-##        # -s: pass $* to shell, and make process easy to find in ps
-##        # prompt is set to sentinel chr( 127 )
-##        cmd = [ 'mnexec', opts, 'env', 'PS1=' + chr( 127 ),
-##                'bash', '--norc', '--noediting',
-##                '-is', 'mininet:' + self.name ]
-##
 
-##        # Spawn a shell subprocess in a pseudo-tty, to disable buffering
-##        # in the subprocess and insulate it from signals (e.g. SIGINT)
-##        # received by the parent
-##        self.master, self.slave = pty.openpty()
-##        self.shell = self._popen( cmd, stdin=self.slave, stdout=self.slave,
-##                                  stderr=self.slave, close_fds=False )
-##        # XXX BL: This doesn't seem right, and we should also probably
-##        # close our files when we exit...
-##        self.stdin = os.fdopen( self.master, 'r' )
-##        self.stdout = self.stdin
-##        self.pid = self.shell.pid
-##        self.pollOut = select.poll()
-##        self.pollOut.register( self.stdout )
-##        # Maintain mapping between file descriptors and nodes
-##        # This is useful for monitoring multiple nodes
-##        # using select.poll()
-##        self.outToNode[ self.stdout.fileno() ] = self
-##        self.inToNode[ self.stdin.fileno() ] = self
-
-        assert self.ssh.connected()
-
-        self.execed = False
-        self.lastCmd = None
-        self.lastPid = None
-        self.readbuf = ''
-
-        # == start the shell
-        task = self.loop.create_task(self._startShell())
-
-        # Wait for prompt
-        if waitStart:
-            self.waitStarted()
-            self.finalizeStartShell()
+        self.loop.create_task(run_shell())
 
     def _popen( self, cmd, **params ):
         """Internal method: spawn and return a process
@@ -571,30 +502,13 @@ class LxcNode (Node):
     # XXX - OK
     def cleanup( self ):
         "Help python collect its garbage."
-        self.task = None
         self.waiting = False
-        self.conn = None                                                                                                       
         self.run = False
+        self.conn = None                                                                                                       
         self.shell = None
         self.devices = None
 
     # Subshell I/O, commands and control
-
-    # XXX - TODO - OK
-    # XXX DSA - ATTENTION ignores maxbytes
-    def read( self, maxbytes=1024, timeout=None ):
-        """Buffered read from node, potentially blocking.
-           maxbytes: maximum number of bytes to return"""
-        task = self.loop.create_task(self._read(maxbytes=maxbytes, timeout=timeout))
-        while not task.done():
-            time.sleep(0.0001)
-        return task.result()
-
-    # XXX - OK
-    def write( self, data ):
-        """Write data to node.
-           data: string"""
-        self.stdin.write(data)
 
     # XXX - OK
     def terminate( self ):
@@ -604,12 +518,10 @@ class LxcNode (Node):
         cmds = []
         # destroy the container
         cmds.append("lxc delete {} --force".format(self.name))
-#        self.targetSsh.cmd("lxc delete {} --force".format(self.name))
 
         # remove all locally made devices
         for device in self.devices:
             cmds.append("ip link delete {}".format(device))
-#            self.targetSsh.cmd("ip link delete {}".format(device))
 
         cmd = ";".join(cmds)
         self.targetSsh.sendCmd(cmd)
@@ -617,69 +529,8 @@ class LxcNode (Node):
         # close the SSH connection
         self.ssh.close()
 
-#        # close the SSH tunnel
-#        if self.tunnel:
-#            self.tunnel.close()
-
         # cleanup variables
         self.cleanup()
-
-     # XXX - OK
-     # TODO DSA - should find a wait to do it correctly
-    def waitReadable( self, timeoutms=None ):
-        """
-        Wait until node's output is readable.
-        timeoutms: timeout in ms or None to wait indefinitely.
-        
-        Raises
-        ------
-        NotImplementedError
-            not needed so not implemented
-        """
-
-        raise NotImplementedError("not implemented yet (not needed)")
-
-    # XXX - OK
-    def sendCmd(self, *args, **kwargs):
-        """
-        Runs command `cmd` on the node. The call is non blocking. The command
-        can be controlled via the `task` attribute.
-
-        Parameters 
-        ----------
-        cmd : str
-            command to execute on the node.
-        
-        Raises
-        ------
-        NotImplementedError
-            If printPid is requested
-        """
-
-        if 'printPid' in kwargs:
-            raise NotImplementedError("printPid is not supported")
-
-        assert not self.waiting
-
-        printPid = kwargs.get( 'printPid', False )
-        # Allow sendCmd( [ list ] )
-        if len( args ) == 1 and isinstance( args[ 0 ], list ):
-            cmd = args[ 0 ]
-        # Allow sendCmd( cmd, arg1, arg2... )
-        elif len( args ) > 0:
-            cmd = args
-        # Convert to string
-        if not isinstance( cmd, str ):
-            cmd = ' '.join( [ str( c ) for c in cmd ] )
-        if not re.search( r'\w', cmd ):
-            # Replace empty commands with something harmless
-            cmd = 'echo -n'
-        self.lastCmd = cmd
-        cmd = cmd + "\necho -n '\x7f'\n"
-       
-        self.write(cmd)
-        self.lastPid = None
-        self.waiting = True
 
     # XXX - DSA - quick hack to deal with OpenSSH bug regarding signals...
     async def _sendInt(self):
@@ -694,28 +545,6 @@ class LxcNode (Node):
         while not task.done():
             time.sleep(0.0001)
         return task.result()
-
-    ## TODO - XXX - OK
-    ## Have to be able to deal with the PID
-    def monitor( self, timeoutms=None, findPid=True ):
-        """Monitor and return the output of a command.
-           Set self.waiting to False if command has completed.
-           timeoutms: timeout in ms or None to wait indefinitely
-           findPid: look for PID from mnexec -p"""
-#        ready = self.waitReadable( timeoutms )
-#        if not ready:
-#            return ''
-        timeout = timeoutms/1000.0 if timeoutms is not None else None
-        data = self.read( 1024, timeout=timeout )
-
-        # Look for sentinel/EOF
-        if len( data ) > 0 and data[ -1 ] == chr( 127 ):
-            self.waiting = False
-            data = data[ :-1 ]
-        elif chr( 127 ) in data:
-            self.waiting = False
-            data = data.replace( chr( 127 ), '' )
-        return data
 
     # XXX - OK
     def popen( self, *args, **kwargs ):
@@ -750,15 +579,24 @@ class LxcNode (Node):
 
     # == New methods ==========================================================
     def finalizeStartShell(self):
-        # XXX - TODO - DSA should be file numbers 
-        self.outToNode[ self.stdout ] = self
-        self.inToNode[ self.stdin ] = self 
+        self.execed = False
+        self.lastCmd = None
+        self.lastPid = None
+        self.readbuf = ''
 
+        ## TODO DSA  - to put in finalize
+        self.waitStarted()
+        # Wait for prompt
+        while True:
+            data = self.read( 1024 )
+            if data[ -1 ] == chr( 127 ):
+                break
+            self.pollOut.poll()
         self.waiting = False
         # +m: disable job control notification
         self.cmd( 'unset HISTFILE; stty -echo; set +m' )
-
         self.mountPrivateDirs()
+
 
     def waitConnected(self):
         """
@@ -772,26 +610,11 @@ class LxcNode (Node):
         Blocking until the node is actually started
         """
 
-        while self.stdin is None:
+        while (self.stdin is None) or (self.stdout is None):
             time.sleep(0.001)
    # =========================================================================
 
     # == Time for coroutines black magic ======================================
-    # TODO DSA make it cleaner, but asyncssh read works with EOF only...
-    async def _read(self, maxbytes=1024, timeout=None):
-        r = ''
-        while maxbytes > 0:
-            try:
-                c = await asyncio.wait_for(self.stdout.read(n=1), timeout=timeout)
-                r = r + c
-                if c == '\x7f':
-                    return r
-            except asyncio.TimeoutError:
-                return r
-            maxbytes -= 1
-        return r
-#        return await self.stdout.readuntil(separator='\x7f')
-
     # XXX - OK
     async def _pexec(self, *args, **kwargs):
         """Execute a command using popen
@@ -824,19 +647,3 @@ class LxcNode (Node):
         exitcode = process.returncode
         
         return out, err, exitcode
-
-    # XXX - OK
-    async def _startShell(self):
-        bash = "bash --rcfile <( echo 'PS1=\x7f') --noediting -is mininet:{}".format(self.name)
-
-#        self.shell = await self.conn.create_process(bash, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        self.shell = await self.ssh.createProcess(bash, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-
-        self.stdin = self.shell.stdin
-        self.stdout = self.shell.stdout
-        self.stderr = self.shell.stderr
-
-        while True:
-            await asyncio.sleep(1)
-    # =========================================================================
-

@@ -219,9 +219,9 @@ class Distrinet( Mininet ):
         self.pub_id = pub_id
 
         self.client_keys = client_keys
-        self.master = master
+        self.masterhost = master
         _info ("Connecting to master node\n")
-        self.masterSsh = ASsh(loop=self.loop, host=self.master, username=self.user, bastion=self.jump, client_keys=self.client_keys)
+        self.masterSsh = ASsh(loop=self.loop, host=self.masterhost, username=self.user, bastion=self.jump, client_keys=self.client_keys)
         self.masterSsh.connect()
         self.masterSsh.waitConnected()
         _info ("connected to master node\n")
@@ -540,7 +540,7 @@ class Distrinet( Mininet ):
         _ip = "{}/{}".format(ipAdd(self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen), self.adminPrefixLen)
         self.adminNextIP += 1
         self.host.createMasterAdminNetwork(self.masterSsh, brname="admin-br", ip=_ip)
-        _info (" admin network created on {}\n".format(self.master))
+        _info (" admin network created on {}\n".format(self.masterhost))
 
 
         assert (isinstance(self.controllers, list))
@@ -626,7 +626,7 @@ class Distrinet( Mininet ):
 
             cmds = []
             for node in nodes:
-                cmds = cmds + node.connectToAdminNetwork(master=node.master.host, target=node.target, link_id=CloudLink.newLinkId(), admin_br="admin-br", wait=False)
+                cmds = cmds + node.connectToAdminNetwork(master=node.masternode.host, target=node.target, link_id=CloudLink.newLinkId(), admin_br="admin-br", wait=False)
             if len (cmds) > 0:
                 cmd = ';'.join(cmds)
                 self.masterSsh.cmd(cmd) 
@@ -646,7 +646,7 @@ class Distrinet( Mininet ):
 
             for node in nodes:
                 _info ("startshell {} ".format( node.name) )
-                node.startShell(waitStart=False)
+                node.asyncStartShell()
             for node in nodes:
                 node.waitStarted()
                 _info ("startedshell {}".format( node.name))
