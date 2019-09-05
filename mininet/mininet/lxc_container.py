@@ -159,7 +159,7 @@ class LxcNode (Node):
         # IP address to use to administrate the machine
         self.admin_ip = admin_ip
 
-        self.master = master
+        self.masternode = master
         self.containerInterfaces = {}
         self.containerLinks = {}
 
@@ -208,7 +208,7 @@ class LxcNode (Node):
         # when no target, use the master node as anchor point
         else:
             assert (False)
-            self.targetSsh = ASsh(loop=self.loop, host=self.master.host, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
+            self.targetSsh = ASsh(loop=self.loop, host=self.masternode.host, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
         # SSH with the node
         admin_ip = self.admin_ip
         if "/" in admin_ip:
@@ -225,7 +225,7 @@ class LxcNode (Node):
             self.createContainer(**params)
             self.waitCreated()
             self.addContainerInterface(intfName="admin", brname="admin-br")
-            self.connectToAdminNetwork(master=self.master.host, target=self.target, link_id=CloudLink.newLinkId(), admin_br="admin-br")
+            self.connectToAdminNetwork(master=self.masternode.host, target=self.target, link_id=CloudLink.newLinkId(), admin_br="admin-br")
 
             self.configureContainer()
             self.connect()
@@ -256,7 +256,7 @@ class LxcNode (Node):
         # connect the target to the admin network
 #        if not self.target in self.__class__.connectedToAdminNetwork:
 #            print (self.target, "not connected yet to admin")
-#            self.connectToAdminNetwork(master=self.master.host, target=self.target, link_id=CloudLink.newLinkId(), admin_br=adminbr)
+#            self.connectToAdminNetwork(master=self.masternode.host, target=self.target, link_id=CloudLink.newLinkId(), admin_br=adminbr)
 #            self.__class__.connectedToAdminNetwork[self.target] = True
 #        else:
 #            print (self.target, "already connected to admin")
@@ -298,7 +298,7 @@ class LxcNode (Node):
         if ipmatch:
             return ipmatch[ 0 ]
         # Otherwise, look up remote server
-        output = self.master.cmd('getent ahostsv4 {}'.format(name))
+        output = self.masternode.cmd('getent ahostsv4 {}'.format(name))
 
         ips = _ipMatchRegex.findall( output )
 
@@ -389,7 +389,7 @@ class LxcNode (Node):
             self.devices.append(vxlan_name)
 #            print ("master".format(vxlan_name),cmd)
 #            if wait:
-#                self.master.cmd(cmd)
+#                self.masternode.cmd(cmd)
 #                cmds = []
         return cmds
 
