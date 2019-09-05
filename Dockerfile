@@ -5,9 +5,9 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y software-properti
 # update pip
 RUN python3.6 -m pip install pip --upgrade
 WORKDIR /
-RUN git clone https://github.com/mininet/mininet.git && git clone https://github.com/Giuseppe1992/Distrinet
+RUN git clone https://github.com/Giuseppe1992/Distrinet
 WORKDIR /Distrinet
-ENV PYTHONPATH "${PYTHONPATH}:/mininet:/Distrinet/src/distrinet/cloud"
+ENV PYTHONPATH "${PYTHONPATH}:/Distrinet/mininet/mininet"
 RUN pip install -r requirements.txt && python3.6 setup.py install
 RUN mkdir -p ~/.aws && echo "[default]\naws_access_key_id=XXXXXXXXXXXXXXXX\naws_secret_access_key=YYYYYYYYYYYYYYYYYYYY">> ~/.aws/credentials
 CMD /bin/bash
