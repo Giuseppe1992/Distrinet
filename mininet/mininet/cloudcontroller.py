@@ -119,7 +119,7 @@ class OnosLxcController ( LxcController ):
 class RyuLxcController ( OnosLxcController ):
     def __init__( self, name,
                   loop, admin_ip=None, master=None,
-                  image='ryu-controller',
+                  image='ubuntu-ryu-4.30',
                   **params):
         super(RyuLxcController, self).__init__(name=name, loop=loop, admin_ip=admin_ip, master=master, image=image, **params)
 
