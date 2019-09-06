@@ -164,7 +164,7 @@ from mininet.lxc_container import ( LxcNode )
 from mininet.cloudswitch import LxcOVSSwitch 
 from mininet.cloudlink import CloudLink
 from mininet.distrinet import Distrinet
-from mininet.cloudcontroller import (LxcRemoteController, OnosLxcController)
+from mininet.cloudcontroller import (LxcRemoteController, OnosLxcController, RyuLxcController)
 
 from mininet.mapper.dummymapper import DummyMapper
 from mininet.topodc import (DumbbellTopo)
@@ -180,7 +180,8 @@ from mininet.provision.provision import Provision
 TOPOS.update({'dumbbell': DumbbellTopo})
 
 CONTROLLERS.update({'lxcremote': LxcRemoteController,
-                    'onoslxc': OnosLxcController})
+                    'onoslxc': OnosLxcController,
+                    'ryulxc': RyuLxcController})
 
 
 # == 
