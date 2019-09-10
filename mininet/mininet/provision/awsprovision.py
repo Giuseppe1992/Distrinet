@@ -122,12 +122,18 @@ class distrinetAWS(Provision):
             )
 
         # delete any instances
+        key_name = None
         public_ips = []
         for subnet in vpc.subnets.all():
             for instance in subnet.instances.all():
                 if instance.public_ip_address:
                     public_ips.append(instance.public_ip_address)
+                if instance.key_name and instance.key_name.startswith("DistrinetKey-") and len(instance.key_name) > 30:
+                    key_name = instance.key_name
                 instance.terminate()
+
+        if key_name:
+            ec2client.delete_key_pair(KeyName=key_name)
 
         # delete nat_gateways
         nat_gateways = ec2client.describe_nat_gateways(Filters=[{"Name":"vpc-id", "Values": [vpc.id]}])["NatGateways"]
@@ -157,6 +163,7 @@ class distrinetAWS(Provision):
                 sleep(2)
 
         # wait that all the instances are deleted
+
         subnets = vpc.subnets.all()
         i = 0
         for subnet in subnets:
