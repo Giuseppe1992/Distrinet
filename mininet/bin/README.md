@@ -37,16 +37,21 @@ where
 * `<ip>` is an address reachable on the admin network where an OpenFlow controller listens
 
 ```
---controller=onoslxc,ip=<ip>,admin_ip=<admin_ip>,target=<target_ip>
+--controller=onoslxc,ip=<ip>,[admin_ip=<admin_ip>,target=<target_ip>]
 ```
 
 where
 
 
-* `<ip>` is an address reachable on the admin network where an OpenFlow controller listens,
+* `<ip>` is an address reachable on the admin network where an OpenFlow
+  controller listens,
 * `<admin_ip>` is the admin IP address for the container,
 * `<target_ip>` is the IP of the node where to deploy the container.
 
+When `<admin_ip>` is not specified the `<ip>` address is used as admin IP.
+
+When `<target>` is not specified, the master node is used to host the
+controller.
 
 # Port forwarding
 

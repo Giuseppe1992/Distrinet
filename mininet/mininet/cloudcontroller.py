@@ -73,20 +73,28 @@ class LxcController ( LxcNode ):
 
 class OnosLxcController ( LxcController ):
     def __init__( self, name,
-                  loop, admin_ip, master,
+                  loop, admin_ip=None, master=None,
                   image='ubuntu-onos-2.1.0',
                   **params):
+        assert (master is not None)
+        assert (('ip' in params) or (admin_ip is not None)), "provide at least an ip or an admin_ip"
+
+        if 'target' not in params:
+            params.update({'target':master.host})
+        if admin_ip is None:
+            admin_ip = params.get('ip')
+        if 'ip' not in params:
+            params.update({'ip':admin_ip})
+
         super(OnosLxcController, self).__init__(name=name, loop=loop, admin_ip=admin_ip, master=master, image=image, **params)
 
     def start( self ):
         """Start <controller> <args> on controller.
            Log to /tmp/cN.log"""
-        cout = '/tmp/' + self.name + '.log'
-        if self.cdir is not None:
-            self.cmd( 'cd ' + self.cdir )
+        cout = '/tmp/controller_{}.log'.format(self.name)
         info ( " starting Onos ")
         self.cmd("ln -s /root/jdk-11.0.1/bin/java /usr/bin/java")
-        self.cmd("nohup /opt/onos-2.1.0/bin/onos-service start >& /tmp/controller.dat &")
+        self.cmd("nohup /opt/onos-2.1.0/bin/onos-service start >& {} &".format(cout))
         import time
         time.sleep(25)
         info ( " installing Onos Apps")
@@ -107,6 +115,29 @@ class OnosLxcController ( LxcController ):
     def stop( self, *args, **kwargs ):
         self.cmd("/opt/onos-2.1.0/bin/onos-service stop") 
         super( OnosLxcController, self ).stop( *args, **kwargs )
+
+class RyuLxcController ( OnosLxcController ):
+    def __init__( self, name,
+                  loop, admin_ip=None, master=None,
+                  image='ubuntu-ryu-4.30',
+                  **params):
+        super(RyuLxcController, self).__init__(name=name, loop=loop, admin_ip=admin_ip, master=master, image=image, **params)
+
+    def start( self ):
+        """Start <controller> <args> on controller.
+           Log to /tmp/cN.log"""
+        cout = '/tmp/controller_{}.log'.format(self.name)
+        info ( " starting Ryu ")
+        self.cmd("nohup /usr/local/bin/ryu-manager --verbose /usr/local/lib/python2.7/dist-packages/ryu/app/simple_switch_13.py &> {} &".format(cout))
+        info ( ".")
+
+        self.execed = False
+
+    def stop( self, *args, **kwargs ):
+        self.cmd("killall ryu-manager") 
+        super( RyuLxcController, self ).stop( *args, **kwargs )
+
+
 
 # TODO - DSA inherit from LxcController
 class LxcRemoteController( object ):

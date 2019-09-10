@@ -533,15 +533,15 @@ class LxcNode (Node):
         self.cleanup()
 
     # XXX - DSA - quick hack to deal with OpenSSH bug regarding signals...
-    async def _sendInt(self):
-        await self.ssh.conn.run("killall -g --signal INT bash")
+    async def _sendInt(self, intr):
+        killcmd = 'kill -s {} -`pgrep -f "mininet:{}"`'.format(ord(intr), self.name)
+        await self.ssh.conn.run(killcmd)
 
-    # XXX - TODO - OK
+    # XXX - OK
     def sendInt( self, intr=chr( 3 ) ):
         "Interrupt running command."
         debug( 'sendInt: writing chr(%d)\n' % ord( intr ) )
-#        self.shell.send_signal(intr)
-        task = self.loop.create_task(self._sendInt())
+        task = self.loop.create_task(self._sendInt(intr))
         while not task.done():
             time.sleep(0.0001)
         return task.result()
