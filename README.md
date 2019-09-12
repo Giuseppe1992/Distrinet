@@ -153,7 +153,8 @@ root@53942a77d770:~# pwd
 to the PYTHONPATH
 
 ```
-export PYTHONPATH=$PYTHONPATH:/root/mininet:/root/Distrinet/v2/mininet/distrinet/cloud/
+export PYTHONPATH=$PYTHONPATH:mininet:
+cd /root/Distrinet/mininet
 ```
 
 You are ready to run your first experiment.
@@ -179,6 +180,7 @@ docker run --name distrinet -itd distrinet:1.1
 * If everything is good you should see a docker container named "distrinet". You can attach to it with:
 ```
 docker attach distrinet
+cd /root/Distrinet/mininet
 ```
 
 * now you need to create an aws_access_key_id and an aws_secret_access_key via
@@ -190,9 +192,8 @@ docker attach distrinet
 ### Example
 
 Here we explain how to run a simple experiment.
-
-#### Case 1: you have not deployed Distrinet before
- TODO: adapt with the new version
+You have to run from /root/Distrinet/mininet directory.
+Follow this [link](https://github.com/Giuseppe1992/Distrinet/blob/master/mininet/bin/README.md)
 
 ## Deployment
 
