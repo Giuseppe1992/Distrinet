@@ -191,8 +191,63 @@ cd /root/Distrinet/mininet
 
 ### Example
 
+
+
 Here we explain how to run a simple experiment.
 You have to run from /root/Distrinet/mininet directory.
+Before run it, you need to configure the distrinet configuration file, located at: ~/.distrinet/conf.yml
+
+This is the example that you have installed
+```
+---
+
+ssh:
+  pub_id: "YOUR PUBLIC ID"
+  user: "root"
+  client_keys: ["/root/.ssh/id_rsa"]
+  bastion: "Bastion host IP 'xxx.xxx.xxx.xxx'"
+
+port_forwarding:
+  - local: 8181
+    proto: 'tcp'
+    ip: '192.168.0.250'
+    remote: 8181
+
+aws:
+  region: "eu-central-1"
+  user: "ubuntu"
+  image_name: "ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-20190722.1"
+  key_name_aws: "id_rsa"
+  network_acl:
+    - IpProtocol: "-1"
+      FromPort: 1
+      ToPort: 65353
+      IpRanges:
+        - CidrIp: "0.0.0.0/0"
+
+g5k:
+  g5k_user: "your username"
+  g5k_password: "your password"
+  image_name: "ubuntu1804-x64-python3"
+  location: "nancy"
+  cluster: "grisou"
+
+cluster:
+  user: "root"
+```
+In any deployment, make sure to have in ssh, the correct pub_id and the correct path in client_keys to you private key.
+If you are in AWS or G5k, the user is root.
+
+In case you are using AWS, after correctly configure the ssh, you have to correctly configure the key_name_aws.
+You have to put the aws keyname created before, in my case "DistrinetKeyGiuseppe".
+You can choose a different region if you want, and DO NOT modify the parameter user: "ubuntu" and image_name.
+
+In case you are using G5K, you have to put your username and password.
+If you want you can modify the location and the cluster(Make sure that they exist).
+For image Image_name you need to create a mininmal ubuntu18 image with python3 installed on it, you can do it by following the [tutorial](https://www.grid5000.fr/w/Advanced_Kadeploy#Customize_the_OS)
+
+
+
 Follow this [link](https://github.com/Giuseppe1992/Distrinet/blob/master/mininet/bin/README.md)
 
 ## Deployment
