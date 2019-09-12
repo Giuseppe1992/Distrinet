@@ -3,13 +3,13 @@
 ## Deployment in Amazon
 
 ```
-python3 dmn --provision=aws --controller=lxcremote,ip=192.168.0.1
+python3 bin/dmn --provision=aws --controller=lxcremote,ip=192.168.0.1
 ```
 
 With the possibility to overwrite default parameters:
 
 ```
-python3 dmn --provision=aws,3,instanceType=t3.2xlarge,volumeSize=10 --controller=lxcremote,ip=192.168.0.1
+python3 bin/dmn --provision=aws,3,instanceType=t3.2xlarge,volumeSize=10 --controller=lxcremote,ip=192.168.0.1
 ```
 
 would instantiate a total of 3 t3.2xlarge instances, each one with a volume
@@ -21,7 +21,7 @@ Specify the bastion address in the `ssh` section of the `~/.distrinet/conf.yml`
 file or using the `--bastion` option:
 
 ```
-python3 dmn [--bastion <bastion_ip>] --workers="<ip1>,<ip2>,...,<ipn>" --custom=default_image.py
+python3 bin/dmn [--bastion <bastion_ip>] --workers="<ip1>,<ip2>,...,<ipn>" --custom=default_image.py
 ```
 
 ## Note
@@ -89,9 +89,9 @@ port_forwarding:
 ## Examples
 
 ```
-python3 dmn --workers="10.0.0.200,10.0.1.31,10.0.1.76" --topo=tree,2 --controller=lxcremote,ip=192.168.0.1 --custom=default_image.py
+python3 bin/dmn --workers="10.0.0.200,10.0.1.31,10.0.1.76" --topo=tree,2 --controller=lxcremote,ip=192.168.0.1 --custom=default_image.py
 ```
 
 ```
-python3 dmn --workers="10.0.0.200,10.0.1.31,10.0.1.76" --topo=tree,2 --controller=onoslxc,ip=192.168.0.250,admin_ip=192.168.0.250,target=10.0.0.200 --custom=default_image.py
+python3 bin/dmn --workers="10.0.0.200,10.0.1.31,10.0.1.76" --topo=tree,2 --controller=onoslxc,ip=192.168.0.250,admin_ip=192.168.0.250,target=10.0.0.200 --custom=default_image.py
 ```
