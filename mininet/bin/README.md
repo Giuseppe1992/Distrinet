@@ -3,13 +3,13 @@
 ## Deployment in Amazon
 
 ```
-python3 dmn --provision=aws --custom=default_image.py
+python3 dmn --provision=aws --controller=lxcremote,ip=192.168.0.1
 ```
 
 With the possibility to overwrite default parameters:
 
 ```
-python3 dmn --provision=aws,3,instanceType=t3.2xlarge,volumeSize=10
+python3 dmn --provision=aws,3,instanceType=t3.2xlarge,volumeSize=10 --controller=lxcremote,ip=192.168.0.1
 ```
 
 would instantiate a total of 3 t3.2xlarge instances, each one with a volume
