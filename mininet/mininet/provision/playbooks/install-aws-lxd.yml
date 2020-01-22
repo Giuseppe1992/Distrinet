@@ -78,7 +78,7 @@
 
     - name: install ryu
       apt :
-        name: python-ryu
+        name: python3-ryu
 
     - name: install bridge-utils
       apt :
