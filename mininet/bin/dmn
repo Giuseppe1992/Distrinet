@@ -546,7 +546,7 @@ class DistrinetRunner( object ):
                 for pf in port_forwarding:
                     if "container" not in pf:
                         cmds.append("iptables --table nat -A PREROUTING --protocol {} --dport {} --jump DNAT --to-destination {}:{}".format(pf['proto'], pf['local'], pf['ip'], pf['remote']))
-                cmds.append("iptables -t nat -A POSTROUTING -j MASQUERADE")
+                        cmds.append("iptables -t nat -A POSTROUTING --protocol {} --dport {} -j MASQUERADE".format(pf['proto'], pf['local']))
                 mn.masterSsh.cmd(";".join(cmds))
 
 
@@ -588,8 +588,10 @@ class DistrinetRunner( object ):
                         cmds.append("iptables --table nat -D PREROUTING --protocol {} --dport {} --jump DNAT --to-destination {}:{}".format(pf['proto'], pf['local'], mn.nameToNode[pf['container']].targetSsh.host, pf['local']))
                     else:
                         cmds.append("iptables --table nat -D PREROUTING --protocol {} --dport {} --jump DNAT --to-destination {}:{}".format(pf['proto'], pf['local'], pf['ip'], pf['remote']))
+                        cmds.append("iptables -t nat -D POSTROUTING --protocol {} --dport {} -j MASQUERADE".format(pf['proto'], pf['local']))
+
                 
-                cmds.append("iptables -t nat -D POSTROUTING -j MASQUERADE")
+                #cmds.append("iptables -t nat -D POSTROUTING -j MASQUERADE")
                 mn.masterSsh.cmd(";".join(cmds))
 
         mn.stop()
