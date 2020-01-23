@@ -16,7 +16,7 @@ print(f"packages required from requirements.txt: {required}")
 
 setup(
     name='Distrinet',
-    version='1.1',
+    version='1.2',
     python_requires='>=3.6',
     packages=["mininet"],
     url='https://github.com/Giuseppe1992/Distrinet/tree/master',

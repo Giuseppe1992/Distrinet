@@ -500,6 +500,7 @@ class DistrinetRunner( object ):
                 for node in nodes:
                     places[node] = cluster[i%len(cluster)]
                     i = i + 1
+                    print(node, places[node])
                 return places
 
             places = _rounRobin(topo=topo, cluster=workers)
