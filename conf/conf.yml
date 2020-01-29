@@ -33,3 +33,6 @@ g5k:
 
 cluster:
   user: "root"
+
+mapper:
+  physical_infrastructure_path: "PATH TO JSON FILE (do not include .json)"

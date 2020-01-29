@@ -1,10 +1,11 @@
-from mapping.embedding.algorithms import EmbedBalanced, EmbedPartition, EmbedTwoPhases, EmbedILP
-from mapping_distrinet.mapping.embedding.algorithms.ilp import EmbedILP
-from mapping_distrinet.mapping.embedding.physical import PhysicalNetwork
-from mapping_distrinet.mapping.virtual import VirtualNetwork
-import mapping_distrinet.mapping as mp
-from mininet.topo import Topo
-
+from distriopt import VirtualNetwork
+from distriopt.embedding.physical import PhysicalNetwork
+from distriopt.embedding.algorithms import (
+    EmbedBalanced,
+    EmbedILP,
+    EmbedPartition,
+    EmbedGreedy,
+)
 class DummyMapper(object):
     def __init__(self, places={}):
         self.places = places
@@ -13,7 +14,7 @@ class DummyMapper(object):
         return self.places[node]
 
 class Mapper(object):
-    def __init__(self, virtual_topo, physical_topo, solver=EmbedTwoPhases):
+    def __init__(self, virtual_topo, physical_topo, solver=EmbedGreedy):
         """ virtual_topo: virtual topology to map
             physical_topo: physical topology to map on
             solver: solver class to use to solve the mapping"""
@@ -63,3 +64,14 @@ class Mapper(object):
         place =  self.prob.solution.link_mapping[link]
 
         return place
+
+
+if __name__ == '__main__':
+    physical = PhysicalNetwork.from_files("/Users/giuseppe/.distrinet/gros_partial")
+    virtual_topo = VirtualNetwork.create_fat_tree(k=2, density=2, req_cores=2, req_memory=100,
+                                                  req_rate=100)
+
+    prob = EmbedGreedy(virtual_topo, physical)
+    time_solution, status = prob.solve()
+    print(time_solution, status)
+    print(prob.solution.node_mapping)

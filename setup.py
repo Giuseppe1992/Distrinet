@@ -26,7 +26,7 @@ setup(
     license='MIT',
     author='Giuseppe Di Lena',
     author_email='giuseppedilena92@gmail.com',
-    description='Distrinet v.1.1',
+    description='Distrinet v.1.2',
     data_files= [(".distrinet", ["conf/conf.yml"])],
     scripts=["mininet/bin/dmn"],
     include_package_data = True,

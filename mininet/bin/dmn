@@ -471,7 +471,7 @@ class DistrinetRunner( object ):
             warn( '*** WARNING: Experimental cloud mode!\n' )
             provision, args, kwargs = splitArgs(opts.provision)
             if provision not in PROVISIONS:
-                raise Exception( 'Invalid topo name %s' % topo )
+                raise Exception( 'Invalid provision name %s' % topo )
            
             provisionner = PROVISIONS[ provision ]( *args, **kwargs )
             jump, master, workerHostsPrivateIp = provisionner.deploy()
@@ -503,7 +503,17 @@ class DistrinetRunner( object ):
                     print(node, places[node])
                 return places
 
+
+            def _masterPlacement(topo, cluster):
+                places = {}
+                nodes = topo.hosts() + topo.switches()
+                for node in nodes:
+                    places[node] = cluster[0]
+                    print(node, places[node])
+                return places
+
             places = _rounRobin(topo=topo, cluster=workers)
+            #places = _masterPlacement(topo=topo, cluster=workers)
             mapper = MAPPERS[ opts.mapper ](places=places)
             info ("*** Mapping: {}\n".format( mapper.places))
 
@@ -559,7 +569,9 @@ class DistrinetRunner( object ):
             CLI( mn, script=opts.pre )
 
         mn.start()
-
+        for x in locals():
+            print(x)
+            print(mapper)
         if opts.provision or opts.workers:
             # port forwarding
             if 'port_forwarding' in locals():
