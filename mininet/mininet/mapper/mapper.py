@@ -6,6 +6,9 @@ from distriopt.embedding.algorithms import (
     EmbedPartition,
     EmbedGreedy,
 )
+
+
+
 class DummyMapper(object):
     def __init__(self, places={}):
         self.places = places
@@ -13,15 +16,46 @@ class DummyMapper(object):
     def place(self, node):
         return self.places[node]
 
+    def placeLink(self, link):
+        return ({}, {})
+
+class RoundRobinMapper(DummyMapper):
+    def __init__(self, virtual_topo, physical_topo=[]):
+        self.physical = physical_topo
+        self.vNodes = virtual_topo.hosts()+virtual_topo.switches()
+        self.places = self.__places(self.vNodes, physical_topo)
+
+    def __places(self, vNodes, physical_topo):
+        places={}
+        i=0
+        for node in vNodes:
+            places[node] = physical_topo[i % len(physical_topo)]
+            i += 1
+        return places
+
+    def place(self, node):
+        return self.places[node]
+
+
+"""class DummyMapper(object):
+    def __init__(self, places={}):
+        self.places = places
+
+    def place(self, node):
+        return self.places[node]"""
+
 class Mapper(object):
     def __init__(self, virtual_topo, physical_topo, solver=EmbedGreedy):
         """ virtual_topo: virtual topology to map
             physical_topo: physical topology to map on
             solver: solver class to use to solve the mapping"""
-        self.virtual_topo = virtual_topo
-        self.physical_topo = physical_topo
+        self.virtual_topo =  VirtualNetwork.from_mininet(virtual_topo)
+        self.mininet_virtual=virtual_topo
+        self.physical_topo = PhysicalNetwork.from_files(physical_topo)
         self.prob = None
         self.solver = solver
+        self.solve()
+        self.places= self.__places()
 
     def solve(self, solver=None):
         """ Solve the mapping problem of the virtual topology on the physical
@@ -31,14 +65,22 @@ class Mapper(object):
 
         if solver is not None:
             self.solver = solver
-
+        #virtual_network= VirtualNetwork.from_mininet(self.virtual_topo)
         self.prob = self.solver(virtual=self.virtual_topo, physical=self.physical_topo)
         time_solution, status = self.prob.solve()
 
-        if mp.SolutionStatus[status] == "Not Solved":
+        if status == "0":
             raise Exception("Failed to solve")
-        elif mp.SolutionStatus[status] == "Infeasible":
+        elif status == "-1":
             raise Exception("Unfeasible Problem")
+
+    def __places(self):
+        places={}
+        vNodes=self.mininet_virtual.hosts()+self.mininet_virtual.switches()
+        for node in vNodes:
+            places[node]=self.place(node)
+
+        return places
 
 
     def place(self, node):
