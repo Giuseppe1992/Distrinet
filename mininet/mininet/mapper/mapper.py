@@ -66,9 +66,16 @@ class Mapper(object):
         if solver is not None:
             self.solver = solver
         #virtual_network= VirtualNetwork.from_mininet(self.virtual_topo)
-        self.prob = self.solver(virtual=self.virtual_topo, physical=self.physical_topo)
-        time_solution, status = self.prob.solve()
+        for h in self.virtual_topo.nodes():
+            print(h, self.virtual_topo.req_cores(h))
 
+
+        print("data", self.mininet_virtual.nodeInfo("h1"))
+
+        self.prob = self.solver(virtual=self.virtual_topo, physical=self.physical_topo)
+
+        time_solution, status = self.prob.solve()
+        print(status)
         if status == "0":
             raise Exception("Failed to solve")
         elif status == "-1":
@@ -136,7 +143,6 @@ class Packing(object):
 
 
         time_solution, status = self.prob.solve()
-        print("""HELLLOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO!!!!!!""")
         if status == "0":
             raise Exception("Failed to solve")
         elif status == "-1":

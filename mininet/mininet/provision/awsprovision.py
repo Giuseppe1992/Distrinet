@@ -12,7 +12,7 @@ aws_conf = conf["aws"]
 AWS_REGION = aws_conf["region"]
 SRC_PLAYBOOKS_DIR = "mininet/provision/playbooks"
 DST_PLAYBOOKS_DIR = "/root/playbooks"
-VOLUME_SIZE= aws_conf["volumeSize"]
+VOLUME_SIZE= int(aws_conf["volumeSize"])
 MAIN_USER = aws_conf["user"]
 KEY_PAIR_NAME_WORKERS = 'DistrinetKey-' + str(uuid.uuid4().hex)
 IP_PERMISSION = aws_conf["network_acl"]
@@ -104,7 +104,7 @@ class distrinetAWS(Provision):
         """
         get all the instances type, with the private ip in the vpc
         :param vpcId: Id of the Vpc
-        :return: client response
+        :return: list containing tuples of (instance_type, private_ip)
         """
         vpcid = VpcId
         ec2 = distrinetAWS.ec2Resource
@@ -763,7 +763,7 @@ class distrinetAWS(Provision):
             bar.update(5)
             self.setupMasterAutorizedKeysOnWorkers(SshSession=sshRootSession, WorkerHostsIp=workerHostsPrivateIp)
             bar.update(6)
-            return bastionHostPublicIp, masterHostPrivateIp, workerHostsPrivateIp
+            return bastionHostPublicIp, masterHostPrivateIp, workerHostsPrivateIp, self.vpc.id
 
 def awsProvisionHelper(*args, instanceType='t3.2xlarge', volumeSize=10, **kwargs):
     numberOfInstances = (args[0]-1) if len(args) > 0 else 2
@@ -821,7 +821,6 @@ def optimizationAWSHelper(node_assigement):
               'workersHostsDescription': workersHostsDescription
               }
     print(params)
-    exit(0)
     return distrinetAWS(**params)
 
 if __name__ == '__main__':

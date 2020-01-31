@@ -61,7 +61,6 @@ class Provision (object):
 
         with open(str(conf_file), "r") as stream:
             conf_dict = yaml.safe_load(stream)
-
         return conf_dict
 
 

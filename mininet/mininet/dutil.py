@@ -10,9 +10,9 @@ def default_images(*args, **kwargs):
     pub_id = ssh_conf["pub_id"]
 
     topo = kwargs['topo']
-
-    sopts={ "image":"switch","controller":"c0", 'pub_id':pub_id, "cpu":4, "memory":"2GB" }
-    hopts={ "image":"ubuntu", 'pub_id':pub_id, "cpu":2, "memory":"4GB" }
+    # TODO: you need to specify cpu for LXD and cores for mininet API
+    sopts={ "image":"switch","controller":"c0", 'pub_id':pub_id, "cpu":1, "memory":"500MB"}
+    hopts={ "image":"ubuntu", 'pub_id':pub_id, "cpu":1, "memory":"1GB"}
     lopts={ "bw":1000 } #, "delay":"10ms"}
 
     topo.hopts.update(hopts)
