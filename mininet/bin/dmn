@@ -166,10 +166,12 @@ from mininet.cloudlink import CloudLink
 from mininet.distrinet import Distrinet
 from mininet.cloudcontroller import (LxcRemoteController, OnosLxcController, RyuLxcController)
 
-from mininet.mapper.dummymapper import DummyMapper
+from mininet.mapper.mapper import RoundRobinMapper, Mapper, Packing, DummyMapper
+from distriopt.embedding.algorithms import ( EmbedBalanced, EmbedILP, EmbedPartition, EmbedGreedy)
+from distriopt.packing.algorithms import BestFitDopProduct,FirstFitDecreasingPriority,FirstFitOrderedDeviation
 from mininet.topodc import (DumbbellTopo)
 
-from mininet.provision.awsprovision import (awsProvisionHelper, distrinetAWS)
+from mininet.provision.awsprovision import (optimizationAWSHelper, distrinetAWS)
 from mininet.dutil import (default_images)
 from mininet.dcli import (DCLI)
 
@@ -185,11 +187,13 @@ CONTROLLERS.update({'lxcremote': LxcRemoteController,
 
 
 # == 
-MAPPERDEF = 'dummymapper' 
-MAPPERS = { 'dummymapper': DummyMapper }
+MAPPERDEF = 'roundRobin'
+MAPPERS = { 'roundRobin': RoundRobinMapper , "embeddedGreedy":EmbedGreedy,
+            "embeddedBalanced":EmbedBalanced, "embeddedPartition":EmbedPartition,
+            "bfdp":BestFitDopProduct,"ffdp":FirstFitDecreasingPriority,"ffod":FirstFitOrderedDeviation}
 
 PROVISIONDEF = 'aws'
-PROVISIONS = { 'aws': awsProvisionHelper }
+PROVISIONS = { 'aws': optimizationAWSHelper }
 
 PREBUILD = [default_images]
 # ============================================================================
@@ -336,12 +340,12 @@ class DistrinetRunner( object ):
 
         # == Distrinet ========================================================
         opts.add_option("-b","--bastion", dest="bastion",
-                          help="bsation node", metavar="bastion")
+                          help="bastion node", metavar="bastion")
         opts.add_option("-w","--workers", dest="workers",
                           help="worker nodes (their LXC name)", metavar="workers") 
         opts.add_option( '--mapper', type='choice',
-                         choices=list( MAPPERS.keys() ), default='dummymapper',
-                         metavar='dummymapper',
+                         choices=list( MAPPERS.keys() ), default='roundRobin',
+                         metavar='roundRobin',
                          help=( 'node mapping for --workers '
                                 '(experimental!) ' ) )
         opts.add_option("--purge", dest="purge",
@@ -463,26 +467,57 @@ class DistrinetRunner( object ):
             if 'port_forwarding' in conf:
                 port_forwarding = conf["port_forwarding"]
 
+            if "mapping_algorithm" in conf:
+                mapping_algorithm = conf["mapping_algorithm"]
+                json_path_physical_topology=mapping_algorithm["physical_infrastructure_path"]
+                json_path_cloud_prices=mapping_algorithm["cloud_instances_prices"]
+
         if opts.bastion:
             jump = opts.bastion
 
+        for x in PREBUILD:
+            x(topo=topo)
+
         # Provision the cloud
         if opts.provision:
-            warn( '*** WARNING: Experimental cloud mode!\n' )
-            provision, args, kwargs = splitArgs(opts.provision)
-            if provision not in PROVISIONS:
-                raise Exception( 'Invalid topo name %s' % topo )
-           
-            provisionner = PROVISIONS[ provision ]( *args, **kwargs )
-            jump, master, workerHostsPrivateIp = provisionner.deploy()
-            workers = [master] + workerHostsPrivateIp
+            if opts.provision == "aws":
+                def __packing_helper(d1, l2):
+                    new_d1 = {}
+                    d_values = set(d1.values())
+                    d1_key_mapping = dict()
+                    for dt, id_ in d_values:
+                        for t, ip in l2:
+                            if t == dt:
+                                l2.remove((t, ip))
+                                d1_key_mapping[(dt, id_)] = (t, ip)
+                                break
+                    for vNode in d1.keys():
+                        t, id_ = d1[vNode]
+                        new_d1[vNode] = (t, id_, d1_key_mapping[(t, id_)][1])
+
+                    return new_d1
+
+                if not opts.mapper or opts.mapper  not in ["bfdp", "ffdp", "ffod"]:
+                    raise ValueError(f"You need to provide an aws mapper if you use aws provision, you provided {opts.mapper}")
+
+                warn( '*** WARNING: Experimental cloud mode!\n' )
+                pack = Packing(virtual_topo=topo,cloud_prices=json_path_cloud_prices,solver=MAPPERS[opts.mapper])
+                provisionner = PROVISIONS[ opts.provision ](pack.places)
+                jump, master, workerHostsPrivateIp, vpcID = provisionner.deploy()
+                workers = [master] + workerHostsPrivateIp
+                instances_created=distrinetAWS.getAllInstancesInVPC(vpcID)
+                #print("instances_cretated",instances_created)
+                packing_helper= __packing_helper(pack.places,instances_created)
+                #print("packing_helper", packing_helper)
+                places_packing={vNode:packing_helper[vNode][2] for vNode in packing_helper}
+                #print("provison done",places_packing)
 
         # Cloud already provisioned 
         if opts.workers:
             workers = opts.workers.split( ',' )
             master = workers[0]
 
-        if opts.provision or opts.workers:
+        if opts.workers or opts.provision:
             warn( '*** WARNING: Experimental cloud mode!\n'
                   '*** Using LxcNode, LxcOVSSwitch, CloudLink\n' )
             host, switch, link = LxcNode, LxcOVSSwitch, CloudLink
@@ -492,25 +527,17 @@ class DistrinetRunner( object ):
             waitConnected=False
             build=False
 
-            # mapping
-            def _rounRobin(topo, cluster):
-                i = 0
-                places = {}
-                nodes = topo.hosts() + topo.switches()
-                for node in nodes:
-                    places[node] = cluster[i%len(cluster)]
-                    i = i + 1
-                return places
-
-            places = _rounRobin(topo=topo, cluster=workers)
-            mapper = MAPPERS[ opts.mapper ](places=places)
+            if opts.mapper in ["roundRobin"]:
+                mapper = MAPPERS[ opts.mapper ](virtual_topo=topo, physical_topo=workers)
+            elif opts.mapper in ["embeddedGreedy", "embeddedBalanced", "embeddedPartition"]:
+                mapper = Mapper(virtual_topo=topo, physical_topo=json_path_physical_topology,solver=MAPPERS[ opts.mapper ])
+            elif opts.mapper in ["bfdp", "ffdp", "ffod"]:
+                mapper = DummyMapper(places=places_packing)
+            else:
+                raise ValueError(f"{opts.mapper} not implemented ")
             info ("*** Mapping: {}\n".format( mapper.places))
 
-            if opts.provision or opts.workers:
-                for x in PREBUILD:
-                    x(topo=topo)
-
-            ## 
+            ##
             Net = partial( Distrinet ,
                     link=link,
                     adminIpBase=adminIpBase,
@@ -521,6 +548,8 @@ class DistrinetRunner( object ):
                     user=user,
                     client_keys=client_keys, pub_id=pub_id,
                     waitConnected=waitConnected)
+
+
 
         mn = Net( topo=topo,
                   switch=switch, host=host,
@@ -550,7 +579,6 @@ class DistrinetRunner( object ):
                 mn.masterSsh.cmd(";".join(cmds))
 
 
-
         # --custom files can set CLI or change mininet.cli.CLI
         CLI = DCLI if CLI is None else CLI
 
@@ -561,6 +589,7 @@ class DistrinetRunner( object ):
 
         if opts.provision or opts.workers:
             # port forwarding
+
             if 'port_forwarding' in locals():
                 for pf in port_forwarding:
                     if "container" in pf:
@@ -574,6 +603,7 @@ class DistrinetRunner( object ):
         if opts.test:
             runTests( mn, opts.test )
         else:
+
             CLI( mn )
 
         if opts.post:

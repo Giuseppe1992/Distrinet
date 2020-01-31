@@ -15,6 +15,7 @@ port_forwarding:
 aws:
   region: "eu-central-1"
   user: "ubuntu"
+  volumeSize: "8"
   image_name: "ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-20190722.1"
   key_name_aws: "id_rsa"
   network_acl:
@@ -33,3 +34,7 @@ g5k:
 
 cluster:
   user: "root"
+
+mapper:
+  physical_infrastructure_path: "PATH TO JSON FILE (do not include .json)"
+  cloud_instances_prices: "PATH TO JSON FILE (do not include .json)"

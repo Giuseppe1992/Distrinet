@@ -16,7 +16,7 @@ print(f"packages required from requirements.txt: {required}")
 
 setup(
     name='Distrinet',
-    version='1.1',
+    version='1.2',
     python_requires='>=3.6',
     packages=["mininet"],
     url='https://github.com/Giuseppe1992/Distrinet/tree/master',
@@ -26,7 +26,7 @@ setup(
     license='MIT',
     author='Giuseppe Di Lena',
     author_email='giuseppedilena92@gmail.com',
-    description='Distrinet v.1.1',
+    description='Distrinet v.1.2',
     data_files= [(".distrinet", ["conf/conf.yml"])],
     scripts=["mininet/bin/dmn"],
     include_package_data = True,

@@ -12,6 +12,7 @@ aws_conf = conf["aws"]
 AWS_REGION = aws_conf["region"]
 SRC_PLAYBOOKS_DIR = "mininet/provision/playbooks"
 DST_PLAYBOOKS_DIR = "/root/playbooks"
+VOLUME_SIZE= int(aws_conf["volumeSize"])
 MAIN_USER = aws_conf["user"]
 KEY_PAIR_NAME_WORKERS = 'DistrinetKey-' + str(uuid.uuid4().hex)
 IP_PERMISSION = aws_conf["network_acl"]
@@ -98,6 +99,26 @@ class distrinetAWS(Provision):
                                       f"Required={number_requested},  used={usedInstances[instance_type]}, "
                                       f"limit={default_max_instances_per_type}")
 
+    @staticmethod
+    def getAllInstancesInVPC(VpcId):
+        """
+        get all the instances type, with the private ip in the vpc
+        :param vpcId: Id of the Vpc
+        :return: list containing tuples of (instance_type, private_ip)
+        """
+        vpcid = VpcId
+        ec2 = distrinetAWS.ec2Resource
+        vpc = ec2.Vpc(vpcid)
+
+        # get all instances
+        instances_types = []
+        for subnet in vpc.subnets.all():
+            for instance in subnet.instances.all():
+                ip = instance.private_ip_address
+                t = instance.instance_type
+                instances_types.append((t,ip))
+
+        return instances_types
 
     @staticmethod
     def removeVPC(VpcId):
@@ -742,9 +763,9 @@ class distrinetAWS(Provision):
             bar.update(5)
             self.setupMasterAutorizedKeysOnWorkers(SshSession=sshRootSession, WorkerHostsIp=workerHostsPrivateIp)
             bar.update(6)
-            return bastionHostPublicIp, masterHostPrivateIp, workerHostsPrivateIp
+            return bastionHostPublicIp, masterHostPrivateIp, workerHostsPrivateIp, self.vpc.id
 
-def awsProvisionHelper(*args, instanceType='t3.2xlarge', volumeSize=50, **kwargs):
+def awsProvisionHelper(*args, instanceType='t3.2xlarge', volumeSize=10, **kwargs):
     numberOfInstances = (args[0]-1) if len(args) > 0 else 2
     if isinstance(volumeSize, str):
         volumeSize = int(volumeSize)
@@ -765,23 +786,49 @@ def awsProvisionHelper(*args, instanceType='t3.2xlarge', volumeSize=50, **kwargs
     return distrinetAWS(**params)
 
 
+def optimizationAWSHelper(node_assigement):
+    if not node_assigement:
+        raise Exception("AWS provider cannot create 0 nodes")
+
+    cloud_instances_list = list(set(node_assigement.values()))
+    cloud_instances_to_create = {x[0]: 0 for x in cloud_instances_list}
+
+    for instance in cloud_instances_list:
+        cloud_instances_to_create[instance[0]] += 1
+    instance_type = instance[0]
+    cloud_instances_to_create[instance_type] -= 1
+    if cloud_instances_to_create[instance_type] == 0:
+        cloud_instances_to_create.pop(instance_type)
+
+    bastionHostDescription = {'instanceType': instance_type,
+                                         'BlockDeviceMappings': [{'DeviceName': "/dev/sda1",
+                                                                  'Ebs': {'VolumeSize': VOLUME_SIZE}}]}
+
+    workersHostsDescription=[]
+    for instanceType in cloud_instances_to_create:
+        numberOfInstances= cloud_instances_to_create[instanceType]
+        workersHostsDescription.append({'numberOfInstances': numberOfInstances, 'instanceType': instanceType,
+                                           'BlockDeviceMappings': [{'DeviceName': '/dev/sda1',
+                                                                    'Ebs': {'VolumeSize': VOLUME_SIZE}}]})
+
+    vpcname = "demo_{}".format(int(time()))
+
+    params = {'VPCName': vpcname,
+              'addressPoolVPC': '10.0.0.0/16',
+              'publicSubnetNetwork': '10.0.0.0/24',
+              'privateSubnetNetwork': '10.0.1.0/24',
+              'bastionHostDescription': bastionHostDescription,
+              'workersHostsDescription': workersHostsDescription
+              }
+    print(params)
+    return distrinetAWS(**params)
+
 if __name__ == '__main__':
-    o = distrinetAWS(VPCName="DEMO-", addressPoolVPC="10.0.0.0/16", publicSubnetNetwork='10.0.0.0/24',
-                     privateSubnetNetwork='10.0.1.0/24',
+    a={'host_2': ('t3.xlarge', 0), 'host_1': ('t3.xlarge', 0), 'host_3': ('t3.xlarge', 1), 'host_4': ('t3.xlarge', 1),
+       'aggr_1': ('t3.xlarge', 2), 'core_1': ('t3.xlarge', 2), 'aggr_2': ('t3.xlarge', 3), 'edge_1': ('t3.xlarge', 3),
+       'edge_2': ('t3.xlarge', 4)}
+    optimizationAWSHelper(a)
 
-                     bastionHostDescription={'instanceType': 't2.micro',
-
-
-                                             "BlockDeviceMappings": [
-                                                 {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 15}}
-                                             ]
-                                             },
-                     workersHostsDescription=[{"numberOfInstances": 2, 'instanceType': 't2.micro',
-                                               "BlockDeviceMappings": [
-                                                   {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 15}}]}
-                                             ])
-
-    o.deploy()
     #input()
     #distrinetAWS.removeVPC("vpc-0e603975c640e7778")
 

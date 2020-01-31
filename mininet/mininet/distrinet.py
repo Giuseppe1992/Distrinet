@@ -396,6 +396,7 @@ class Distrinet( Mininet ):
             params1 = placement[0]
             params2 = placement[1]
 
+
 ##        # define the VXLAN id for the link
 ##        options.setdefault("link_id", self.nextLinkId)
 ##        self.nextLinkId += 1 
