@@ -477,9 +477,6 @@ class DistrinetRunner( object ):
 
         for x in PREBUILD:
             x(topo=topo)
-            print(topo)
-            for n in topo.nodes():
-                print(n,topo.nodeInfo(n))
 
         # Provision the cloud
         if opts.provision:
@@ -509,11 +506,11 @@ class DistrinetRunner( object ):
                 jump, master, workerHostsPrivateIp, vpcID = provisionner.deploy()
                 workers = [master] + workerHostsPrivateIp
                 instances_created=distrinetAWS.getAllInstancesInVPC(vpcID)
-                print("instances_cretated",instances_created)
+                #print("instances_cretated",instances_created)
                 packing_helper= __packing_helper(pack.places,instances_created)
-                print("packing_helper", packing_helper)
+                #print("packing_helper", packing_helper)
                 places_packing={vNode:packing_helper[vNode][2] for vNode in packing_helper}
-                print("provison done",places_packing)
+                #print("provison done",places_packing)
 
         # Cloud already provisioned 
         if opts.workers:
@@ -589,9 +586,7 @@ class DistrinetRunner( object ):
             CLI( mn, script=opts.pre )
 
         mn.start()
-        for x in locals():
-            print(x)
-            print(mapper)
+
         if opts.provision or opts.workers:
             # port forwarding
 
