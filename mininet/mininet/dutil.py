@@ -11,9 +11,9 @@ def default_images(*args, **kwargs):
 
     topo = kwargs['topo']
     # TODO: you need to specify cpu for LXD and cores for mininet API
-    sopts={ "image":"switch","controller":"c0", 'pub_id':pub_id, "cpu":1, "memory":"500MB"}
-    hopts={ "image":"ubuntu", 'pub_id':pub_id, "cpu":1, "memory":"1GB"}
-    lopts={ "bw":1000 } #, "delay":"10ms"}
+    sopts={ "image":"switch","controller":"c0", 'pub_id':pub_id, "cpu":24, "memory":"12GB"}
+    hopts={ "image":"ubuntu", 'pub_id':pub_id, "cpu":4, "memory":"12GB"}
+    lopts={ "bw":100 } #, "delay":"10ms"}
 
     topo.hopts.update(hopts)
     topo.sopts.update(sopts)

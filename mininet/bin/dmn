@@ -481,7 +481,6 @@ class DistrinetRunner( object ):
             for n in topo.nodes():
                 print(n,topo.nodeInfo(n))
 
-        places = None
         # Provision the cloud
         if opts.provision:
             if opts.provision == "aws":
@@ -537,8 +536,9 @@ class DistrinetRunner( object ):
                 mapper = Mapper(virtual_topo=topo, physical_topo=json_path_physical_topology,solver=MAPPERS[ opts.mapper ])
             elif opts.mapper in ["bfdp", "ffdp", "ffod"]:
                 mapper = DummyMapper(places=places_packing)
+            else:
+                raise ValueError(f"{opts.mapper} not implemented ")
             info ("*** Mapping: {}\n".format( mapper.places))
-
 
             ##
             Net = partial( Distrinet ,
@@ -551,6 +551,8 @@ class DistrinetRunner( object ):
                     user=user,
                     client_keys=client_keys, pub_id=pub_id,
                     waitConnected=waitConnected)
+
+
 
         mn = Net( topo=topo,
                   switch=switch, host=host,
@@ -580,7 +582,6 @@ class DistrinetRunner( object ):
                 mn.masterSsh.cmd(";".join(cmds))
 
 
-
         # --custom files can set CLI or change mininet.cli.CLI
         CLI = DCLI if CLI is None else CLI
 
@@ -593,6 +594,7 @@ class DistrinetRunner( object ):
             print(mapper)
         if opts.provision or opts.workers:
             # port forwarding
+
             if 'port_forwarding' in locals():
                 for pf in port_forwarding:
                     if "container" in pf:
@@ -606,6 +608,7 @@ class DistrinetRunner( object ):
         if opts.test:
             runTests( mn, opts.test )
         else:
+
             CLI( mn )
 
         if opts.post:

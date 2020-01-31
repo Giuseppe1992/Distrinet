@@ -109,10 +109,10 @@ class Mapper(object):
         """
         if self.prob == None:
             self.solve()
+        n1,n2=link
+        #p1,p2 = self.prob.solution.node_info(n1),self.prob.solution.node_info(n2)
 
-        place =  self.prob.solution.link_mapping[link]
-
-        return place
+        return {},{}
 
 
 class Packing(object):

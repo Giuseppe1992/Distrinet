@@ -392,9 +392,12 @@ class Distrinet( Mininet ):
         params2 = None
         if self.mapper:
             lstr = (str(node1), str(node2))
+            print("###########################lstr",lstr)
             placement = self.mapper.placeLink( lstr)
+            print("AAAAAAAA",placement)
             params1 = placement[0]
             params2 = placement[1]
+
 
 ##        # define the VXLAN id for the link
 ##        options.setdefault("link_id", self.nextLinkId)
@@ -403,6 +406,7 @@ class Distrinet( Mininet ):
         cls = self.link if cls is None else cls
         link = cls( node1=node1, node2=node2, params1=params1, params2=params2, **options )
         self.links.append( link )
+        print("BBBBBBBBBB",link)
         return link
 
     def delLink( self, link ):
