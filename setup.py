@@ -1,6 +1,7 @@
 from setuptools import setup
 from pathlib import Path
 from shutil import copy
+from os import system
 
 # create .distrinet/conf.yml configuration in the user home directory
 home_dir = Path.home()
@@ -13,6 +14,9 @@ with open('requirements.txt') as f:
     required = f.read().splitlines()
 required = list(filter(lambda x: not x.startswith("#") and not x.startswith("git"), required))
 print(f"packages required from requirements.txt: {required}")
+
+#install mininet
+system("mininet/util/install.sh -a")
 
 setup(
     name='Distrinet',
