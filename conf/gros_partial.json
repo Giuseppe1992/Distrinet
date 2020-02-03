@@ -1,0 +1,70 @@
+{
+  "nodes": [
+    {
+      "id": "gros-76.nancy.grid5000.fr",
+      "cores": 48,
+      "memory": 131072.0
+    },
+    {
+      "id": "gros-84.nancy.grid5000.fr",
+      "cores": 48,
+      "memory": 131072.0
+    },
+    {
+      "id": "gros-89.nancy.grid5000.fr",
+      "cores": 48,
+      "memory": 131072.0
+    },
+    {
+      "id": "gros-97.nancy.grid5000.fr",
+      "cores": 48,
+      "memory": 131072.0
+    }],
+  "links": [
+    {
+      "source": "gros-76.nancy.grid5000.fr",
+      "target": "gw-nancy",
+      "devices": [
+        {
+          "source_device": "eth0",
+          "target_device": "Ethernet7/1",
+          "rate": 10000.0
+        }
+      ]
+    },
+    {
+      "source": "gros-84.nancy.grid5000.fr",
+      "target": "gw-nancy",
+      "devices": [
+        {
+          "source_device": "eth0",
+          "target_device": "Ethernet7/2",
+          "rate": 10000.0
+        }
+      ]
+    },
+    {
+      "source": "gros-89.nancy.grid5000.fr",
+      "target": "gw-nancy",
+      "devices": [
+        {
+          "source_device": "eth0",
+          "target_device": "Ethernet7/3",
+          "rate": 10000.0
+        }
+      ]
+    },
+    {
+      "source": "gros-97.nancy.grid5000.fr",
+      "target": "gw-nancy",
+      "devices": [
+        {
+          "source_device": "eth0",
+          "target_device": "Ethernet7/4",
+          "rate": 10000.0
+        }
+      ]
+    }
+    
+  ]
+}
