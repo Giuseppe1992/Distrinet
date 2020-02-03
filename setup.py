@@ -8,7 +8,8 @@ home_dir = Path.home()
 conf_dir = home_dir / ".distrinet"
 conf_dir.mkdir(0o777, parents=True, exist_ok=True)
 copy('conf/conf.yml', str(conf_dir))
-
+copy('conf/general_purpose.json', str(conf_dir))
+copy('conf/gros_partial.json', str(conf_dir))
 # get the required packages form requiremets.txt
 with open('requirements.txt') as f:
     required = f.read().splitlines()
@@ -31,7 +32,7 @@ setup(
     author='Giuseppe Di Lena',
     author_email='giuseppedilena92@gmail.com',
     description='Distrinet v.1.2',
-    data_files= [(".distrinet", ["conf/conf.yml"]),(".distrinet", ["conf/general_purpose.json"]),(".distrinet", ["conf/gros_partial.json"])],
+    data_files= [(".distrinet", ["conf/conf.yml"])],
     scripts=["mininet/bin/dmn"],
     include_package_data = True,
     zip_safe = True
