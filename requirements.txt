@@ -19,4 +19,4 @@ PyYAML==5.1.2
 awscli>=1.16.224
 progressbar2==3.43.1
 #git+git://github.com/mininet/mininet.git
-#git+https://github.com/Giuseppe1992/mapping_distrinet.git
+git+https://github.com/Giuseppe1992/mapping_distrinet-1.git
