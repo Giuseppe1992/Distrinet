@@ -12,8 +12,9 @@ To see options:
 Example to pull custom params (topo, switch, etc.) from a file:
   mn --custom ~/mininet/custom/custom_example.py
 """
-
+from pathlib import Path
 from optparse import OptionParser
+import json
 import os
 import sys
 import time
@@ -198,7 +199,7 @@ PROVISIONS = { 'aws': optimizationAWSHelper }
 PREBUILD = [default_images]
 # ============================================================================
 
-
+EXPERIMENT_PATH = Path.home() / ".distrinet"/ "experiment.json"
 
 class DistrinetRunner( object ):
     "Build, setup, and run Mininet."
@@ -351,6 +352,13 @@ class DistrinetRunner( object ):
         opts.add_option("--purge", dest="purge",
                           help="VPC ID", metavar="purge")
         addDictOption( opts, PROVISIONS, None, 'provision' )
+        opts.add_option("--placement_file", dest="placement_file_path",
+                          help="path to the json describing the mapping of the vNodes", metavar="placement_file_path")
+
+        opts.add_option("--optimization_only", dest="optimization_only",choices=[True,False],default=False,
+                        help="If True create just the experiment file without running the emulation with distrinet,"
+                             " be carefull in aws, it will create the environment in ordr to run the optimization", metavar="optimization_only")
+
         # =====================================================================
 
 
@@ -374,6 +382,15 @@ class DistrinetRunner( object ):
 
     # Maybe we'll reorganize this someday...
     # pylint: disable=too-many-branches,too-many-statements,global-statement
+
+    def check_if_file_exists(self,file_path):
+        return Path(file_path).is_file()
+
+    def save_experiment(self,experiment):
+        experiment_path = EXPERIMENT_PATH
+        with open(experiment_path, "w") as fp:
+            json.dump(experiment, fp)
+
 
     def begin( self ):
         "Create and run mininet."
@@ -449,12 +466,17 @@ class DistrinetRunner( object ):
             mininet.cli.CLI = ClusterCLI
 
 
-        if opts.provision and opts.workers:
+        if opts.provision and opts.workers :
             error ( "Please specify --provision OR --workers\n" )
             exit()
 
+        if (opts.provision or opts.workers or opts.bastion) and opts.placement_file_path:
+            # raise an error, the deployment file contains all the infos
+            error("if you specify the placement file, there is no need to provide provision, the bastion or the workers\n")
+            exit()
+
         # load default configuration
-        if opts.provision or opts.workers:
+        if opts.provision or opts.workers or opts.placement_file_path:
             conf = Provision.get_configurations()
             ssh_conf = conf["ssh"]
             pub_id = ssh_conf["pub_id"]
@@ -501,23 +523,23 @@ class DistrinetRunner( object ):
                     raise ValueError(f"You need to provide an aws mapper if you use aws provision, you provided {opts.mapper}")
 
                 warn( '*** WARNING: Experimental cloud mode!\n' )
+
+                if not self.check_if_file_exists(json_path_cloud_prices+".json"):
+                    error(f"{json_path_cloud_prices} does not exist")
                 pack = Packing(virtual_topo=topo,cloud_prices=json_path_cloud_prices,solver=MAPPERS[opts.mapper])
-                provisionner = PROVISIONS[ opts.provision ](pack.places)
-                jump, master, workerHostsPrivateIp, vpcID = provisionner.deploy()
+                provisioner = PROVISIONS[ opts.provision ](pack.places)
+                jump, master, workerHostsPrivateIp, vpcID = provisioner.deploy()
                 workers = [master] + workerHostsPrivateIp
                 instances_created=distrinetAWS.getAllInstancesInVPC(vpcID)
-                #print("instances_cretated",instances_created)
                 packing_helper= __packing_helper(pack.places,instances_created)
-                #print("packing_helper", packing_helper)
-                places_packing={vNode:packing_helper[vNode][2] for vNode in packing_helper}
-                #print("provison done",places_packing)
+                places_packing={vNode: packing_helper[vNode][2] for vNode in packing_helper}
 
         # Cloud already provisioned 
         if opts.workers:
             workers = opts.workers.split( ',' )
             master = workers[0]
 
-        if opts.workers or opts.provision:
+        if opts.workers or opts.provision or opts.placement_file_path:
             warn( '*** WARNING: Experimental cloud mode!\n'
                   '*** Using LxcNode, LxcOVSSwitch, CloudLink\n' )
             host, switch, link = LxcNode, LxcOVSSwitch, CloudLink
@@ -526,18 +548,42 @@ class DistrinetRunner( object ):
             adminIpBase='192.168.0.1/8'
             waitConnected=False
             build=False
+            if not opts.placement_file_path:
+                if opts.mapper in ["roundRobin"]:
+                    mapper = MAPPERS[ opts.mapper ](virtual_topo=topo, physical_topo=workers)
+                elif opts.mapper in ["embeddedGreedy", "embeddedBalanced", "embeddedPartition"]:
+                    if not self.check_if_file_exists(json_path_physical_topology + ".json"):
+                        error(f"{json_path_physical_topology} does not exist")
+                    mapper = Mapper(virtual_topo=topo, physical_topo=json_path_physical_topology,solver=MAPPERS[ opts.mapper ])
+                elif opts.mapper in ["bfdp", "ffdp", "ffod"]:
+                    mapper = DummyMapper(places=places_packing)
+                else:
+                    raise ValueError(f"{opts.mapper} not implemented ")
 
-            if opts.mapper in ["roundRobin"]:
-                mapper = MAPPERS[ opts.mapper ](virtual_topo=topo, physical_topo=workers)
-            elif opts.mapper in ["embeddedGreedy", "embeddedBalanced", "embeddedPartition"]:
-                mapper = Mapper(virtual_topo=topo, physical_topo=json_path_physical_topology,solver=MAPPERS[ opts.mapper ])
-            elif opts.mapper in ["bfdp", "ffdp", "ffod"]:
-                mapper = DummyMapper(places=places_packing)
+                # Save experiment file
+                experiment={"bastion":jump,"workers":workers,"mapping":mapper.places,"mapper":opts.mapper}
+                self.save_experiment(experiment)
             else:
-                raise ValueError(f"{opts.mapper} not implemented ")
+                # check if the experiment file is correct
+                if not self.check_if_file_exists(EXPERIMENT_PATH):
+                    error(f"**Experiment path:{EXPERIMENT_PATH} does not exist")
+
+                with open(EXPERIMENT_PATH, "r") as read_file:
+                    experiment_data = json.load(read_file)
+
+                # get the info from the experiment file
+                jump=experiment_data["bastion"]
+                workers=experiment_data["workers"]
+                # use the dummy mapper with the placement in the experiment file
+                mapper= DummyMapper(places=experiment_data["mapping"])
+
             info ("*** Mapping: {}\n".format( mapper.places))
 
+            if opts.optimization_only:
+                exit(0)
             ##
+            info("*** STARTING DISTRINET ***")
+
             Net = partial( Distrinet ,
                     link=link,
                     adminIpBase=adminIpBase,
