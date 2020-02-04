@@ -351,6 +351,8 @@ class DistrinetRunner( object ):
         opts.add_option("--purge", dest="purge",
                           help="VPC ID", metavar="purge")
         addDictOption( opts, PROVISIONS, None, 'provision' )
+        opts.add_option("--placement_file", dest="placement_file_path",
+                          help="path to the json describing the mapping of the vNodes", metavar="placement_file_path")
         # =====================================================================
 
 
@@ -449,12 +451,16 @@ class DistrinetRunner( object ):
             mininet.cli.CLI = ClusterCLI
 
 
-        if opts.provision and opts.workers:
+        if opts.provision and opts.workers :
             error ( "Please specify --provision OR --workers\n" )
             exit()
 
+        if (opts.provision or opts.workers) and opts.placement_file_path:
+            # TODO: raise an error, the deployment file contains all the infos
+            pass
+
         # load default configuration
-        if opts.provision or opts.workers:
+        if opts.provision or opts.workers or opts.placement_file_path:
             conf = Provision.get_configurations()
             ssh_conf = conf["ssh"]
             pub_id = ssh_conf["pub_id"]
@@ -506,18 +512,15 @@ class DistrinetRunner( object ):
                 jump, master, workerHostsPrivateIp, vpcID = provisionner.deploy()
                 workers = [master] + workerHostsPrivateIp
                 instances_created=distrinetAWS.getAllInstancesInVPC(vpcID)
-                #print("instances_cretated",instances_created)
                 packing_helper= __packing_helper(pack.places,instances_created)
-                #print("packing_helper", packing_helper)
-                places_packing={vNode:packing_helper[vNode][2] for vNode in packing_helper}
-                #print("provison done",places_packing)
+                places_packing={vNode: packing_helper[vNode][2] for vNode in packing_helper}
 
         # Cloud already provisioned 
         if opts.workers:
             workers = opts.workers.split( ',' )
             master = workers[0]
 
-        if opts.workers or opts.provision:
+        if opts.workers or opts.provision or opts.placement_file_path:
             warn( '*** WARNING: Experimental cloud mode!\n'
                   '*** Using LxcNode, LxcOVSSwitch, CloudLink\n' )
             host, switch, link = LxcNode, LxcOVSSwitch, CloudLink
@@ -526,18 +529,28 @@ class DistrinetRunner( object ):
             adminIpBase='192.168.0.1/8'
             waitConnected=False
             build=False
+            if not opts.placement_file_path:
+                if opts.mapper in ["roundRobin"]:
+                    mapper = MAPPERS[ opts.mapper ](virtual_topo=topo, physical_topo=workers)
+                elif opts.mapper in ["embeddedGreedy", "embeddedBalanced", "embeddedPartition"]:
+                    mapper = Mapper(virtual_topo=topo, physical_topo=json_path_physical_topology,solver=MAPPERS[ opts.mapper ])
+                elif opts.mapper in ["bfdp", "ffdp", "ffod"]:
+                    mapper = DummyMapper(places=places_packing)
+                else:
+                    raise ValueError(f"{opts.mapper} not implemented ")
 
-            if opts.mapper in ["roundRobin"]:
-                mapper = MAPPERS[ opts.mapper ](virtual_topo=topo, physical_topo=workers)
-            elif opts.mapper in ["embeddedGreedy", "embeddedBalanced", "embeddedPartition"]:
-                mapper = Mapper(virtual_topo=topo, physical_topo=json_path_physical_topology,solver=MAPPERS[ opts.mapper ])
-            elif opts.mapper in ["bfdp", "ffdp", "ffod"]:
-                mapper = DummyMapper(places=places_packing)
+                # TODO: save experiment file
+
             else:
-                raise ValueError(f"{opts.mapper} not implemented ")
+                # TODO: check if the experiment file is correct
+                # TODO: get the info from the experiment file
+                # TODO: use the dummy mapper with the placement in the experiment file
+                pass
+
             info ("*** Mapping: {}\n".format( mapper.places))
 
             ##
+
             Net = partial( Distrinet ,
                     link=link,
                     adminIpBase=adminIpBase,
