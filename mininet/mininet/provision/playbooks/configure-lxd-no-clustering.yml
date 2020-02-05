@@ -2,8 +2,9 @@
 
 - hosts      : all
   remote_user: root
+  become: true
   tasks      :
-    - name  : master lxd configuration
+    - name  : lxd configuration
       expect:
         echo     : yes
         command  : lxd init
@@ -24,8 +25,9 @@
           (?i)Would you like a YAML                                                       : "no"
 
 
-- hosts      : workers
+- hosts      : all
   remote_user: root
+  become: true
   tasks      :
     - name   : distribute switch image
       copy   :

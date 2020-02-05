@@ -2,6 +2,7 @@
 #
 - hosts      : master
   remote_user: root
+  become: true
   tasks      :
 
     - name   : Download switch
@@ -20,11 +21,16 @@
 
 - hosts      : all
   remote_user: root
+  become: true
   tasks      :
     - name: install python3-pip
       apt :
         update_cache: true
         name        : python3-pip
+
+    - name: install python-pip
+      apt :
+        name        : python-pip
 
     - name: install htop
       apt :
@@ -50,3 +56,18 @@
       apt :
         name: openvswitch-switch
 
+    - name: install btrfs-tools
+      apt:
+        name: btrfs-tools
+
+    - name: install lxd
+      apt:
+        name: lxd
+
+    - name: install lxd-client
+      apt :
+        name: lxd-client
+
+    - name: install ryu
+      apt:
+        name: python3-ryu
