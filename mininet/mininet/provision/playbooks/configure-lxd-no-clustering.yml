@@ -2,7 +2,6 @@
 
 - hosts      : all
   remote_user: root
-  become: true
   tasks      :
     - name  : lxd configuration
       expect:
@@ -27,7 +26,6 @@
 
 - hosts      : all
   remote_user: root
-  become: true
   tasks      :
     - name   : distribute switch image
       copy   :

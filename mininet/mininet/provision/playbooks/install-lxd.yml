@@ -2,7 +2,6 @@
 #
 - hosts      : master
   remote_user: root
-  become: true
   tasks      :
 
     - name   : Download switch
@@ -21,7 +20,6 @@
 
 - hosts      : all
   remote_user: root
-  become: true
   tasks      :
     - name: install python3-pip
       apt :
