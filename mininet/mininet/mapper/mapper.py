@@ -43,6 +43,35 @@ class RoundRobinMapper(DummyMapper):
         return self.places[node]
 
 
+
+class BlockMapper(DummyMapper):
+    def __init__(self, virtual_topo, physical_topo=[],block=10):
+        self.physical = physical_topo
+        try:
+            self.vNodes = zip(sorted(virtual_topo.hosts(), key= lambda x:int(x[1:])),sorted(virtual_topo.switches(), key= lambda x:int(x[1:])))
+        except:
+            print("Not a valid Mapper for this instance")
+            exit(1)
+        self.places = self.__places(self.vNodes, physical_topo,block)
+
+    def __places(self, vNodes, physical_topo,block):
+        places={}
+        vNodes= list(vNodes)
+        if len(physical_topo) < len(vNodes) / block:
+            raise Exception("Not a valid Mapper for this instance")
+        for i, (v, s) in enumerate(vNodes):
+
+            places[v] = physical_topo[i//block]
+            places[s] = physical_topo[i//block]
+
+        return places
+
+    def place(self, node):
+        return self.places[node]
+
+
+
+
 class Mapper(object):
     def __init__(self, virtual_topo, physical_topo, solver=EmbedGreedy):
         """ virtual_topo: virtual topology to map

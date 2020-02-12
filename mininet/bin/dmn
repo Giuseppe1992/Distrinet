@@ -167,7 +167,7 @@ from mininet.cloudlink import CloudLink
 from mininet.distrinet import Distrinet
 from mininet.cloudcontroller import (LxcRemoteController, OnosLxcController, RyuLxcController)
 
-from mininet.mapper.mapper import RoundRobinMapper, Mapper, Packing, DummyMapper
+from mininet.mapper.mapper import RoundRobinMapper, Mapper, Packing, DummyMapper, BlockMapper
 from distriopt.embedding.algorithms import ( EmbedBalanced, EmbedILP, EmbedPartition, EmbedGreedy)
 from distriopt.packing.algorithms import BestFitDopProduct,FirstFitDecreasingPriority,FirstFitOrderedDeviation
 from mininet.topodc import (DumbbellTopo)
@@ -189,7 +189,7 @@ CONTROLLERS.update({'lxcremote': LxcRemoteController,
 
 # == 
 MAPPERDEF = 'roundRobin'
-MAPPERS = { 'roundRobin': RoundRobinMapper , "embeddedGreedy":EmbedGreedy,
+MAPPERS = { 'roundRobin': RoundRobinMapper , "block":BlockMapper, "embeddedGreedy":EmbedGreedy,
             "embeddedBalanced":EmbedBalanced, "embeddedPartition":EmbedPartition,
             "bfdp":BestFitDopProduct,"ffdp":FirstFitDecreasingPriority,"ffod":FirstFitOrderedDeviation}
 
@@ -355,7 +355,7 @@ class DistrinetRunner( object ):
         opts.add_option("--placement_file", dest="placement_file_path",
                           help="path to the json describing the mapping of the vNodes", metavar="placement_file_path")
 
-        opts.add_option("--optimization_only", dest="optimization_only",choices=[True,False],default=False,
+        opts.add_option("--optimization_only", dest="optimization_only",choices=["True","False"],default=False,
                         help="If True create just the experiment file without running the emulation with distrinet,"
                              " be carefull in aws, it will create the environment in ordr to run the optimization", metavar="optimization_only")
 
@@ -549,7 +549,7 @@ class DistrinetRunner( object ):
             waitConnected=False
             build=False
             if not opts.placement_file_path:
-                if opts.mapper in ["roundRobin"]:
+                if opts.mapper in ["roundRobin", "block"]:
                     mapper = MAPPERS[ opts.mapper ](virtual_topo=topo, physical_topo=workers)
                 elif opts.mapper in ["embeddedGreedy", "embeddedBalanced", "embeddedPartition"]:
                     if not self.check_if_file_exists(json_path_physical_topology + ".json"):
@@ -579,7 +579,7 @@ class DistrinetRunner( object ):
 
             info ("*** Mapping: {}\n".format( mapper.places))
 
-            if opts.optimization_only:
+            if bool(opts.optimization_only):
                 exit(0)
             ##
             info("*** STARTING DISTRINET ***")
