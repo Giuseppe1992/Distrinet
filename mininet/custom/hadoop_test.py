@@ -49,15 +49,57 @@ def makeSlaves(topo, net):
     for host in cluster:
         makeFile(net, host, slaves, "/root/hadoop-2.7.6/etc/hadoop/slaves", overwrite=False)
 
+
+
+def makePermanentSwitchRules(topo, net):
+    for vswitch in sorted(topo.switches()):
+        makeFile(net,vswitch,makeRules(vswitch, len(topo.switches())),"/root/rules",overwrite=False)
+        net.nameToNode[vswitch].cmd(f"ovs-ofctl add-flows {vswitch} /root/rules")
+
+def makeRules(switch,number_of_switches):
+    switch_n = int(switch[1:])
+    destip_out_port = []
+    if switch_n == 1 or switch_n == number_of_switches:
+        for i in range(1, number_of_switches + 1):
+            if switch_n == i:
+                destip_out_port.append((f"10.0.0.{i}", f"{switch}-eth1"))
+            else:
+                destip_out_port.append((f"10.0.0.{i}", f"{switch}-eth2"))
+
+    else:
+
+        for i in range(1,number_of_switches+1):
+            if switch_n < i:
+                destip_out_port.append((f"10.0.0.{i}", f"{switch}-eth3"))
+            elif switch_n == i:
+                destip_out_port.append((f"10.0.0.{i}", f"{switch}-eth1"))
+            else:
+                destip_out_port.append((f"10.0.0.{i}", f"{switch}-eth2"))
+
+    ovs_rules=[]
+    for ip_, o_port in destip_out_port:
+        rule=f'priority=9999,eth_type=0x0800,ip,ip_dst={ip_},actions=output:"{o_port}"'
+        ovs_rules.append(rule)
+
+    return ovs_rules
+
+
+
 def hadoop_test(mn):
     topo = mn.topo
     aliasMaster(topo=topo, net=mn)
     output ("# populate etc/hadoop/masters\n")
     makeMasters(topo=topo, net=mn)
 
-    output
     output ("# populate etc/hadoop/slaves\n")
     makeSlaves(topo=topo, net=mn)
+
+    makePermanentSwitchRules(topo,mn)
+
+    for h1 in topo.hosts():
+        for h2 in topo.hosts():
+            output(f"{h1},{h2}")
+            output(mn.nameToNode[h1].cmd(f"ping {h2} -c 1"))
 
     hm = getHadoopMaster(topo)
     hadoopMasterNode = mn.nameToNode[hm]
@@ -79,22 +121,6 @@ def hadoop_test(mn):
     output ("\n")
     output ("# Compute PI\n")
     output (hadoopMasterNode.cmd('bash -c "/root/hadoop-2.7.6/bin/hadoop jar  /root/hadoop-2.7.6/share/hadoop/mapreduce/hadoop-mapreduce-examples-2.7.6.jar pi 20 100"'))
-
-    output ("\n")
-    output ("# Teragen\n")
-    output (hadoopMasterNode.cmd('bash -c "/root/hadoop-2.7.6/bin/hadoop jar  /root/hadoop-2.7.6/share/hadoop/mapreduce/hadoop-mapreduce-examples-2.7.6.jar teragen 1000000 bench.tera"'))
-    output ("# Terasort\n")
-    output (hadoopMasterNode.cmd('bash -c "/root/hadoop-2.7.6/bin/hadoop jar  /root/hadoop-2.7.6/share/hadoop/mapreduce/hadoop-mapreduce-examples-2.7.6.jar terasort bench.tera bench.tera.out"'))
-    output ("# Teravalidate\n")
-    output (hadoopMasterNode.cmd('bash -c "/root/hadoop-2.7.6/bin/hadoop jar  /root/hadoop-2.7.6/share/hadoop/mapreduce/hadoop-mapreduce-examples-2.7.6.jar teravalidate bench.tera.out bench.tera.validate"'))
-
-
-    output ("\n")
-    output ("# Wordcount\n")
-    output (hadoopMasterNode.cmd('bash -c "/root/hadoop-2.7.6/bin/hadoop dfs -mkdir bench.wordcount"'))
-    output (hadoopMasterNode.cmd('bash -c "/root/hadoop-2.7.6/bin/hadoop dfs -copyFromLocal /etc/hosts bench.wordcount/hosts"'))
-    output (hadoopMasterNode.cmd('bash -c "/root/hadoop-2.7.6/bin/hadoop jar  /root/hadoop-2.7.6/share/hadoop/mapreduce/hadoop-mapreduce-examples-2.7.6.jar wordcount bench.wordcount/hosts bench.wordcount bench.wordcount.out"'))
-    output ("\n")
 
 # we need the right images to run hadoop
 PREBUILD = [default_images, toHadoop]

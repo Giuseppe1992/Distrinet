@@ -45,15 +45,36 @@ def makeFile(net, host, lines, filename, overwrite=True, wait=True):
         command = 'echo %s' % (line)
         if overwrite and ln == 1:
             command = "%s > %s" % (command, filename)
+            ln = 2
         else:
             command = "%s >> %s"% (command, filename)
         cmds.append(command)
 
-    cmd = ";".join(cmds)
-
     if wait:
-        net.nameToNode[host].cmd(cmd)
+        if len(cmds) <= 20:
+            cmd = ";".join(cmds)
+            net.nameToNode[host].cmd(cmd)
+        else:
+            list_cmds=[]
+            i = 0
+            cmds_ = []
+            for c in cmds:
+                if i < 20:
+                    cmds_.append(c)
+                    i += 1
+                else:
+                    i = 0
+                    list_cmds.append(cmds_)
+                    cmds_= [c]
+
+            if cmds_ != []:
+                list_cmds.append(cmds_)
+
+            for list_c in list_cmds:
+                cmd = ";".join(list_c)
+                net.nameToNode[host].cmd(cmd)
     else:
+        cmd = ";".join(cmds)
         net.nameToNode[host].sendCmd(cmd)
 
 def makeHosts(topo, net, wait=True):
