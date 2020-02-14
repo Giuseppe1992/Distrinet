@@ -96,10 +96,9 @@ def hadoop_test(mn):
 
     makePermanentSwitchRules(topo,mn)
 
-    for h1 in topo.hosts():
-        for h2 in topo.hosts():
-            output(f"{h1},{h2}")
-            output(mn.nameToNode[h1].cmd(f"ping {h2} -c 1"))
+    for h in topo.hosts():
+        output(f"{h}")
+        output(mn.nameToNode["h1"].cmd(f"ping {h} -c 1"))
 
     hm = getHadoopMaster(topo)
     hadoopMasterNode = mn.nameToNode[hm]
@@ -120,7 +119,8 @@ def hadoop_test(mn):
 
     output ("\n")
     output ("# Compute PI\n")
-    output (hadoopMasterNode.cmd('bash -c "/root/hadoop-2.7.6/bin/hadoop jar  /root/hadoop-2.7.6/share/hadoop/mapreduce/hadoop-mapreduce-examples-2.7.6.jar pi 20 100"'))
+    output (hadoopMasterNode.cmd('bash -c "/root/hadoop-2.7.6/bin/hadoop jar  /root/hadoop-2.7.6/share/hadoop/mapreduce/hadoop-mapreduce-examples-2.7.6.jar pi 400 400"'))
+
 
 # we need the right images to run hadoop
 PREBUILD = [default_images, toHadoop]
