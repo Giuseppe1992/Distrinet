@@ -23,7 +23,7 @@ def toDemo(topo):
     """
     if len(topo.hosts()) < 9:
         raise Exception("Not enough hosts")
-    user_1, user_2, downloader_1, f1, f2, fbackup, streaming, http, nagios = topo.hosts(sort=True)[:9]
+    user_1, user_2, downloader_1, f1, f2, fbackup, streaming, http, nagios = ['user1','user2','user3','fw-1','fw-2','fw-b', "stream","http", "nagios"]
 
     infos = {}
     infos.update(topo.nodeInfo(user_1))
