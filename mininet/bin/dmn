@@ -170,7 +170,7 @@ from mininet.cloudcontroller import (LxcRemoteController, OnosLxcController, Ryu
 from mininet.mapper.mapper import RoundRobinMapper, Mapper, Packing, DummyMapper, BlockMapper
 from distriopt.embedding.algorithms import ( EmbedBalanced, EmbedILP, EmbedPartition, EmbedGreedy)
 from distriopt.packing.algorithms import BestFitDopProduct,FirstFitDecreasingPriority,FirstFitOrderedDeviation
-from mininet.topodc import (DumbbellTopo)
+#from mininet.topodc import (DumbbellTopo)
 
 from mininet.provision.awsprovision import (optimizationAWSHelper, distrinetAWS)
 from mininet.dutil import (default_images)
