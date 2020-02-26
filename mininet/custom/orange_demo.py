@@ -1,4 +1,4 @@
-from mininet.topodc import (toDemo)
+from mininet.topodc import (toDemo,toHadoop)
 import time
 from mininet.dutil import makeFile, makeHosts, default_images
 from mininet.log import info, debug, warn, error, output
@@ -22,6 +22,9 @@ PREBUILD = [default_images, toDemo]
 # adding the test in the suite
 TESTS = {'hadoop':demo}
 """
+
+def hadoop_test(mn):
+    topo = mn.topo
 
 class DemoTopo( Topo ):
     "Demo"
@@ -65,6 +68,8 @@ class DemoTopo( Topo ):
         default_images(topo=self)
         toDemo(self)
 
-PREBUILD = [default_images, toDemo]
+# we need the right images to run hadoop
+PREBUILD = [default_images, toHadoop]
 
-topos={"demo":( lambda: DemoTopo() )}
+# adding the test in the suite
+TESTS = {'hadoop':hadoop_test}
