@@ -26,8 +26,11 @@ TESTS = {'hadoop':demo}
 class DemoTopo( Topo ):
     "Demo"
 
-    def build( self, **_opts ):
-        #toDemo(self, slave_image="ubuntu-hadoop-slave", master_image="ubuntu-hadoop-master")
+    def __init__( self ):
+        "Create custom topo."
+
+        # Initialize topology
+        Topo.__init__( self )
 
     # highest node is a web node
         h1 = self.addHost( 'h1' ) #u1
@@ -64,4 +67,4 @@ class DemoTopo( Topo ):
         self.addLink( h6, s5 )
 
 
-topos={"demo":demo}
+topos={"demo":( lambda: demo() )}
