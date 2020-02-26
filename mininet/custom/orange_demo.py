@@ -65,11 +65,12 @@ class DemoTopo( Topo ):
         self.addLink( s4, h7 )
         self.addLink( h6, s5 )
 
-        default_images(topo=self)
-        toDemo(self)
+        #default_images(topo=self)
+        #toDemo(self)
 
 # we need the right images to run hadoop
 PREBUILD = [default_images, toHadoop]
+#TOPOS={}
 
 # adding the test in the suite
-TESTS = {'hadoop':hadoop_test}
+#TESTS = {'hadoop':hadoop_test}
