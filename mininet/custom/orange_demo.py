@@ -64,4 +64,4 @@ class DemoTopo( Topo ):
         self.addLink( h6, s5 )
 
 
-TOPO={"demo":demo}
+topos={"demo":demo}
