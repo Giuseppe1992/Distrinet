@@ -102,7 +102,7 @@ def toHadoop(topo, slave_image='ubuntu-hadoop-slave', master_image='ubuntu-hadoo
     slaves.
     returns the name of the host selected for being the master
     """
-    master = None
+    """    master = None
     # configure each host
     for host in topo.hosts(sort=True):
         image = slave_image
@@ -115,7 +115,21 @@ def toHadoop(topo, slave_image='ubuntu-hadoop-slave', master_image='ubuntu-hadoo
         infos.update(topo.nodeInfo(host))
         infos.update({"image": image, "role": role})
         topo.setNodeInfo(host, infos)
-    return master
+    return master"""
+
+    if len(topo.hosts()) < 9:
+        raise Exception("Not enough hosts")
+    user_1, user_2, downloader_1, f1, f2, fbackup, streaming, http, nagios = topo.hosts(sort=True)[:9]
+    topo.setNodeInfo(user_1, {"image": "ubuntu", "role": "user"})
+    topo.setNodeInfo(user_2, {"image": "ubuntu", "role": "user"})
+    topo.setNodeInfo(downloader_1, {"image": "ubuntu", "role": "downloader"})
+    topo.setNodeInfo(f1, {"image": "ubuntu", "role": "firewall_1"})
+    topo.setNodeInfo(f2, {"image": "ubuntu", "role": "firewall_2"})
+    topo.setNodeInfo(fbackup, {"image": "ubuntu", "role": "firewall_backup"})
+    topo.setNodeInfo(streaming, {"image": "streaming", "role": "streaming"})
+    topo.setNodeInfo(http, {"image": "server", "role": "http"})
+    topo.setNodeInfo(nagios, {"image": "nagios", "role": "nagios"})
+    return "h1"
 
 
 # == Spine&Leaf topology =====================================================
