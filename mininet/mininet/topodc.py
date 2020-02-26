@@ -18,26 +18,57 @@ from mininet.topo import (irange, Topo, SingleSwitchTopo)
 # == Utils ================================================================
 
 def toDemo(topo):
-        """
-        Configure the hosts of a topology to be in a Hadoop cluster
-        The first (alphabetical order) host is the master, all others are the
-        slaves.
-        returns the name of the host selected for being the master
-        """
-        master = None
-        # configure each host
-        if len(topo.hosts()) < 9:
-            raise Exception("Not enough hosts")
-        user_1, user_2, downloader_1, f1, f2, fbackup, streaming, http, nagios = topo.hosts(sort=True)[:9]
-        topo.setNodeInfo(user_1, {"image":"ubuntu", "role":"user"})
-        topo.setNodeInfo(user_2, {"image": "ubuntu", "role": "user"})
-        topo.setNodeInfo(downloader_1, {"image": "ubuntu", "role": "downloader"})
-        topo.setNodeInfo(f1, {"image": "ubuntu", "role": "firewall_1"})
-        topo.setNodeInfo(f2, {"image": "ubuntu", "role": "firewall_2"})
-        topo.setNodeInfo(fbackup, {"image": "ubuntu", "role": "firewall_backup"})
-        topo.setNodeInfo(streaming, {"image": "streaming", "role": "streaming"})
-        topo.setNodeInfo(http, {"image": "server", "role": "http"})
-        topo.setNodeInfo(nagios, {"image": "nagios", "role": "nagios"})
+    """
+    DEMO TOPO
+    """
+    if len(topo.hosts()) < 9:
+        raise Exception("Not enough hosts")
+    user_1, user_2, downloader_1, f1, f2, fbackup, streaming, http, nagios = topo.hosts(sort=True)[:9]
+
+    infos = {}
+    infos.update(topo.nodeInfo(user_1))
+    infos.update({"image": "ubuntu", "role": "user"})
+    topo.setNodeInfo(user_1, infos)
+
+    infos = {}
+    infos.update(topo.nodeInfo(user_2))
+    infos.update({"image": "ubuntu", "role": "user"})
+    topo.setNodeInfo(user_2, infos)
+
+    infos = {}
+    infos.update(topo.nodeInfo(downloader_1))
+    infos.update({"image": "ubuntu", "role": "downloader"})
+    topo.setNodeInfo(downloader_1, infos)
+
+    infos = {}
+    infos.update(topo.nodeInfo(f1))
+    infos.update({"image": "ubuntu", "role": "firewall"})
+    topo.setNodeInfo(f1, infos)
+
+    infos = {}
+    infos.update(topo.nodeInfo(f2))
+    infos.update({"image": "ubuntu", "role": "firewall"})
+    topo.setNodeInfo(f2, infos)
+
+    infos = {}
+    infos.update(topo.nodeInfo(fbackup))
+    infos.update({"image": "ubuntu", "role": "firewall_backup"})
+    topo.setNodeInfo(fbackup, infos)
+
+    infos = {}
+    infos.update(topo.nodeInfo(streaming))
+    infos.update({"image": "streaming", "role": "streaming"})
+    topo.setNodeInfo(streaming, infos)
+
+    infos = {}
+    infos.update(topo.nodeInfo(http))
+    infos.update({"image": "server", "role": "server"})
+    topo.setNodeInfo(http, infos)
+
+    infos = {}
+    infos.update(topo.nodeInfo(nagios))
+    infos.update({"image": "nagios", "role": "nagios"})
+    topo.setNodeInfo(nagios, infos)
 
 
 """class DemoTopo( Topo ):
@@ -102,7 +133,7 @@ def toHadoop(topo, slave_image='ubuntu-hadoop-slave', master_image='ubuntu-hadoo
     slaves.
     returns the name of the host selected for being the master
     """
-    """    master = None
+    master = None
     # configure each host
     for host in topo.hosts(sort=True):
         image = slave_image
@@ -115,21 +146,10 @@ def toHadoop(topo, slave_image='ubuntu-hadoop-slave', master_image='ubuntu-hadoo
         infos.update(topo.nodeInfo(host))
         infos.update({"image": image, "role": role})
         topo.setNodeInfo(host, infos)
-    return master"""
+    return master
 
-    if len(topo.hosts()) < 9:
-        raise Exception("Not enough hosts")
-    user_1, user_2, downloader_1, f1, f2, fbackup, streaming, http, nagios = topo.hosts(sort=True)[:9]
-    topo.setNodeInfo(user_1, {"image": "ubuntu", "role": "user"})
-    topo.setNodeInfo(user_2, {"image": "ubuntu", "role": "user"})
-    topo.setNodeInfo(downloader_1, {"image": "ubuntu", "role": "downloader"})
-    topo.setNodeInfo(f1, {"image": "ubuntu", "role": "firewall_1"})
-    topo.setNodeInfo(f2, {"image": "ubuntu", "role": "firewall_2"})
-    topo.setNodeInfo(fbackup, {"image": "ubuntu", "role": "firewall_backup"})
-    topo.setNodeInfo(streaming, {"image": "streaming", "role": "streaming"})
-    topo.setNodeInfo(http, {"image": "server", "role": "http"})
-    topo.setNodeInfo(nagios, {"image": "nagios", "role": "nagios"})
-    return "h1"
+
+
 
 
 # == Spine&Leaf topology =====================================================
