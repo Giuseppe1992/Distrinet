@@ -50,21 +50,21 @@ class DemoTopo( Topo ):
         s4 = self.addSwitch( 's4' )
         s5 = self.addSwitch( 's5' )
 
-
-        self.addLink( h1, s1 )
-        self.addLink( h2, s1 )
-        self.addLink( h3, s1 )
-        self.addLink( s2, s1 )
-        self.addLink( s2, s3 )
-        self.addLink( s4, s3 )
-        self.addLink( s2, s4 )
-        self.addLink( s2, s5 )
-        self.addLink( s4, s5 )
-        self.addLink( s3, h4 )
-        self.addLink( s3, h8 )
-        self.addLink( s4, h5 )
-        self.addLink( s4, h7 )
-        self.addLink( h6, s5 )
+        lopts = {"bw": 100}
+        self.addLink( h1, s1, info=lopts)
+        self.addLink( h2, s1, info=lopts )
+        self.addLink( h3, s1, info=lopts )
+        self.addLink( s2, s1, info=lopts )
+        self.addLink( s2, s3, info=lopts )
+        self.addLink( s4, s3, info=lopts )
+        self.addLink( s2, s4, info=lopts )
+        self.addLink( s2, s5, info=lopts )
+        self.addLink( s4, s5, info=lopts )
+        self.addLink( s3, h4, info=lopts )
+        self.addLink( s3, h8, info=lopts )
+        self.addLink( s4, h5, info=lopts )
+        self.addLink( s4, h7, info=lopts )
+        self.addLink( h6, s5, info=lopts )
 
 PREBUILD = [default_images, toDemo]
 
