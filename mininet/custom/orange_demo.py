@@ -29,20 +29,20 @@ def demo_test(mn):
     user_1, user_2, downloader_1, f1, f2, fbackup, streaming, http, nagios = [ mn.nameToNode[host] for host in topo.hosts(sort=True)[:9]]
     streaming_ip = streaming.IP()
     http_ip = http.IP()
-    cmd=f"iptables -t nat -A PREROUTING -p tcp -m tcp --d-port 8080 -j DNAT --to-destination {streaming_ip}:8080"
-    output("f1", cmd,f1.cmd(cmd))
+    cmd=f"iptables -t nat -A PREROUTING -p tcp -m tcp --dport 8080 -j DNAT --to-destination {streaming_ip}:8080"
+    output("f1", f1.cmd(cmd))
     cmd=f"iptables -t nat -A POSTROUTING -p tcp -m tcp --dport 8080 -j MASQUERADE"
-    output("f1", cmd,f1.cmd(cmd))
+    output("f1", f1.cmd(cmd))
 
-    cmd=f"iptables -t nat -A PREROUTING -p tcp -m tcp --d-port 80 -j DNAT --to-destination {http_ip}:80"
-    output("f2", cmd,f2.cmd(cmd))
+    cmd=f"iptables -t nat -A PREROUTING -p tcp -m tcp --dport 80 -j DNAT --to-destination {http_ip}:80"
+    output("f2", f2.cmd(cmd))
     cmd=f"iptables -t nat -A POSTROUTING -p tcp -m tcp --dport 80 -j MASQUERADE"
-    output("f2", cmd,f2.cmd(cmd))
+    output("f2", f2.cmd(cmd))
 
-    cmd=f"iptables -t nat -A PREROUTING -p tcp -m tcp --d-port 8080 -j DNAT --to-destination {streaming_ip}:8080"
-    output("fbackup", cmd,fbackup.cmd(cmd))
+    cmd=f"iptables -t nat -A PREROUTING -p tcp -m tcp --dport 8080 -j DNAT --to-destination {streaming_ip}:8080"
+    output("fbackup",fbackup.cmd(cmd))
     cmd=f"iptables -t nat -A POSTROUTING -p tcp -m tcp --dport 8080 -j MASQUERADE"
-    output("fbackup", cmd,fbackup.cmd(cmd))
+    output("fbackup", fbackup.cmd(cmd))
 
 
     CLI(mn)
