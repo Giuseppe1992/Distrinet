@@ -69,7 +69,7 @@ class DemoTopo( Topo ):
         #toDemo(self)
 
 # we need the right images to run hadoop
-PREBUILD = [default_images, toHadoop]
+PREBUILD = [default_images, toDemo]
 #TOPOS={}
 topos = { 'demo': ( lambda: DemoTopo() ) }
 
