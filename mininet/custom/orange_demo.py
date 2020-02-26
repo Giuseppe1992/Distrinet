@@ -56,11 +56,11 @@ class DemoTopo( Topo ):
     # highest node is a web node
         h1 = self.addHost( 'user1' ) #u1
         h2 = self.addHost( 'user2' ) #u2
-        h3 = self.addHost( 'downloader1' ) #d1
-        h4 = self.addHost( 'firewall1' ) #f1
-        h5 = self.addHost( 'firewall2' ) #f2
-        h6 = self.addHost( 'firewallBackup' ) #fbackup
-        h7 = self.addHost( 'streaming' ) #streaming
+        h3 = self.addHost( 'user3' ) #d1
+        h4 = self.addHost( 'fw_1' ) #f1
+        h5 = self.addHost( 'fw_2' ) #f2
+        h6 = self.addHost( 'fw_B' ) #fbackup
+        h7 = self.addHost( 'stream' ) #streaming
         h8 = self.addHost( 'http' ) #http
         h9 = self.addHost( 'nagios' ) #nagios
 
