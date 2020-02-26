@@ -29,6 +29,7 @@ def demo_test(mn):
     user_1, user_2, downloader_1, f1, f2, fbackup, streaming, http, nagios = [ mn.nameToNode[host] for host in topo.hosts(sort=True)[:9]]
     streaming_ip = streaming.IP()
     http_ip = http.IP()
+
     cmd=f"iptables -t nat -A PREROUTING -p tcp -m tcp --dport 8080 -j DNAT --to-destination {streaming_ip}:8080"
     output("f1", f1.cmd(cmd))
     cmd=f"iptables -t nat -A POSTROUTING -p tcp -m tcp --dport 8080 -j MASQUERADE"
@@ -44,7 +45,6 @@ def demo_test(mn):
     cmd=f"iptables -t nat -A POSTROUTING -p tcp -m tcp --dport 8080 -j MASQUERADE"
     output("fbackup", fbackup.cmd(cmd))
 
-
     CLI(mn)
 
 
@@ -54,15 +54,15 @@ class DemoTopo( Topo ):
     def build( self):
 
     # highest node is a web node
-        h1 = self.addHost( 'h1' ) #u1
-        h2 = self.addHost( 'h2' ) #u2
-        h3 = self.addHost( 'h3' ) #d1
-        h4 = self.addHost( 'h4' ) #f1
-        h5 = self.addHost( 'h5' ) #f2
-        h6 = self.addHost( 'h6' ) #fbackup
-        h7 = self.addHost( 'h7' ) #streaming
-        h8 = self.addHost( 'h8' ) #http
-        h9 = self.addHost( 'h9' ) #nagios
+        h1 = self.addHost( 'user1' ) #u1
+        h2 = self.addHost( 'user2' ) #u2
+        h3 = self.addHost( 'downloader1' ) #d1
+        h4 = self.addHost( 'firewall1' ) #f1
+        h5 = self.addHost( 'firewall2' ) #f2
+        h6 = self.addHost( 'firewallBackup' ) #fbackup
+        h7 = self.addHost( 'streaming' ) #streaming
+        h8 = self.addHost( 'http' ) #http
+        h9 = self.addHost( 'nagios' ) #nagios
 
 
         s1 = self.addSwitch( 's1' )
