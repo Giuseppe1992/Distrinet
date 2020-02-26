@@ -36,7 +36,7 @@ def toDemo(topo):
         topo.setNodeInfo(f2, {"image": "ubuntu", "role": "firewall_2"})
         topo.setlinkInfo(fbackup, {"image": "ubuntu", "role": "firewall_backup"})
         topo.setlinkInfo(streaming, {"image": "streaming", "role": "streaming"})
-        topo.setlinkInfo(http, {"image": "http", "role": "http"})
+        topo.setlinkInfo(http, {"image": "server", "role": "http"})
         topo.setlinkInfo(nagios, {"image": "nagios", "role": "nagios"})
 
 

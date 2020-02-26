@@ -66,5 +66,5 @@ class DemoTopo( Topo ):
         self.addLink( s4, h7 )
         self.addLink( h6, s5 )
 
-
+PREBUILD = [default_images, toDemo]
 topos={"demo":( lambda: DemoTopo() )}
