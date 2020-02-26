@@ -180,7 +180,7 @@ from mininet.dcli import (DCLI)
 
 from mininet.provision.provision import Provision
 
-TOPOS.update({'dumbbell': DumbbellTopo})
+#TOPOS.update({'dumbbell': DumbbellTopo})
 
 CONTROLLERS.update({'lxcremote': LxcRemoteController,
                     'onoslxc': OnosLxcController,
