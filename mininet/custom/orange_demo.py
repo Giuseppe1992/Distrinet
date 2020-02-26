@@ -26,7 +26,7 @@ TESTS = {'hadoop':demo}
 
 def demo_test(mn):
     topo = mn.topo
-    user_1, user_2, downloader_1, f1, f2, fbackup, streaming, http, nagios = topo.hosts(sort=True)[:9]
+    user_1, user_2, downloader_1, f1, f2, fbackup, streaming, http, nagios = [ mn.nameToNode[host] for host in topo.hosts(sort=True)[:9]]
     streaming_ip = streaming.IP()
     http_ip = http.IP()
     cmd=f"iptables -t nat -A PREROUTING -p tcp -m tcp --d-port 8080 -j DNAT --to-destination {streaming_ip}:8080"
