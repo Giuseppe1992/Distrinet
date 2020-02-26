@@ -1,8 +1,9 @@
-from mininet.topodc import (toDemo,toHadoop)
+from mininet.topodc import (toDemo)
 import time
 from mininet.dutil import makeFile, makeHosts, default_images
 from mininet.log import info, debug, warn, error, output
 from mininet.topo import (irange, Topo)
+from mininet.cli import CLI
 
 
 """
@@ -23,8 +24,29 @@ PREBUILD = [default_images, toDemo]
 TESTS = {'hadoop':demo}
 """
 
-def hadoop_test(mn):
+def demo_test(mn):
     topo = mn.topo
+    user_1, user_2, downloader_1, f1, f2, fbackup, streaming, http, nagios = topo.hosts(sort=True)[:9]
+    streaming_ip = streaming.IP()
+    http_ip = http.IP()
+    cmd=f"iptables -t nat -A PREROUTING -p tcp -m tcp --d-port 8080 -j DNAT --to-destination {streaming_ip}:8080"
+    output("f1", cmd,f1.cmd(cmd))
+    cmd=f"iptables -t nat -A POSTROUTING -p tcp -m tcp --dport 8080 -j MASQUERADE"
+    output("f1", cmd,f1.cmd(cmd))
+
+    cmd=f"iptables -t nat -A PREROUTING -p tcp -m tcp --d-port 80 -j DNAT --to-destination {http_ip}:80"
+    output("f2", cmd,f2.cmd(cmd))
+    cmd=f"iptables -t nat -A POSTROUTING -p tcp -m tcp --dport 80 -j MASQUERADE"
+    output("f2", cmd,f2.cmd(cmd))
+
+    cmd=f"iptables -t nat -A PREROUTING -p tcp -m tcp --d-port 8080 -j DNAT --to-destination {streaming_ip}:8080"
+    output("fbackup", cmd,fbackup.cmd(cmd))
+    cmd=f"iptables -t nat -A POSTROUTING -p tcp -m tcp --dport 8080 -j MASQUERADE"
+    output("fbackup", cmd,fbackup.cmd(cmd))
+
+
+    CLI(mn)
+
 
 class DemoTopo( Topo ):
     "Demo"
@@ -64,14 +86,14 @@ class DemoTopo( Topo ):
         self.addLink( s4, h5 )
         self.addLink( s4, h7 )
         self.addLink( h6, s5 )
-
+        self.addLink(h9, s2)
         #default_images(topo=self)
         #toDemo(self)
 
 # we need the right images to run hadoop
 PREBUILD = [default_images, toDemo]
 #TOPOS={}
-topos = { 'demo': ( lambda: DemoTopo() ) }
+topos = { 'demo_topo': ( lambda: DemoTopo() ) }
 
 # adding the test in the suite
-#TESTS = {'hadoop':hadoop_test}
+TESTS = {'demo_test':demo_test}
