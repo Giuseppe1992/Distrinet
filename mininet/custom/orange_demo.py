@@ -30,19 +30,19 @@ def demo_test(mn):
     streaming_ip = streaming.IP()
     http_ip = http.IP()
     sleep(10)
-    cmd=f"iptables -t nat -A PREROUTING -p tcp -m tcp --dport 8080 -j DNAT --to-destination {streaming_ip}:8080"
+    cmd=f"bash -c 'iptables -t nat -A PREROUTING -p tcp -m tcp --dport 8080 -j DNAT --to-destination {streaming_ip}:8080'"
     output("f1", f1.cmd(cmd))
-    cmd=f"iptables -t nat -A POSTROUTING -p tcp -m tcp --dport 8080 -j MASQUERADE"
+    cmd=f"bash -c 'iptables -t nat -A POSTROUTING -p tcp -m tcp --dport 8080 -j MASQUERADE'"
     output("f1", f1.cmd(cmd))
 
-    cmd=f"iptables -t nat -A PREROUTING -p tcp -m tcp --dport 80 -j DNAT --to-destination {http_ip}:80"
+    cmd=f"bash -c 'iptables -t nat -A PREROUTING -p tcp -m tcp --dport 80 -j DNAT --to-destination {http_ip}:80'"
     output("f2", f2.cmd(cmd))
-    cmd=f"iptables -t nat -A POSTROUTING -p tcp -m tcp --dport 80 -j MASQUERADE"
+    cmd=f"bash -c 'iptables -t nat -A POSTROUTING -p tcp -m tcp --dport 80 -j MASQUERADE'"
     output("f2", f2.cmd(cmd))
 
-    cmd=f"iptables -t nat -A PREROUTING -p tcp -m tcp --dport 8080 -j DNAT --to-destination {streaming_ip}:8080"
+    cmd=f"bash -c 'iptables -t nat -A PREROUTING -p tcp -m tcp --dport 8080 -j DNAT --to-destination {streaming_ip}:8080'"
     output("fbackup",fbackup.cmd(cmd))
-    cmd=f"iptables -t nat -A POSTROUTING -p tcp -m tcp --dport 8080 -j MASQUERADE"
+    cmd=f"bash -c 'iptables -t nat -A POSTROUTING -p tcp -m tcp --dport 8080 -j MASQUERADE'"
     output("fbackup", fbackup.cmd(cmd))
 
     CLI(mn)
