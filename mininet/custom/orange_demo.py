@@ -1,5 +1,5 @@
 from mininet.topodc import (toDemo)
-import time
+from time import sleep
 from mininet.dutil import makeFile, makeHosts, default_images
 from mininet.log import info, debug, warn, error, output
 from mininet.topo import (irange, Topo)
@@ -29,7 +29,7 @@ def demo_test(mn):
     user_1, user_2, downloader_1, f1, f2, fbackup, streaming, http, nagios = [ mn.nameToNode[host] for host in topo.hosts(sort=True)[:9]]
     streaming_ip = streaming.IP()
     http_ip = http.IP()
-
+    sleep(10)
     cmd=f"iptables -t nat -A PREROUTING -p tcp -m tcp --dport 8080 -j DNAT --to-destination {streaming_ip}:8080"
     output("f1", f1.cmd(cmd))
     cmd=f"iptables -t nat -A POSTROUTING -p tcp -m tcp --dport 8080 -j MASQUERADE"
