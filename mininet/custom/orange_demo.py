@@ -71,6 +71,7 @@ class DemoTopo( Topo ):
 # we need the right images to run hadoop
 PREBUILD = [default_images, toHadoop]
 #TOPOS={}
+topos = { 'demo': ( lambda: DemoTopo() ) }
 
 # adding the test in the suite
 #TESTS = {'hadoop':hadoop_test}
