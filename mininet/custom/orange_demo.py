@@ -5,7 +5,7 @@ from mininet.log import info, debug, warn, error, output
 from mininet.topo import (irange, Topo)
 
 
-
+"""
 
 def demo(mn):
     topo = mn.topo
@@ -21,7 +21,7 @@ PREBUILD = [default_images, toDemo]
 
 # adding the test in the suite
 TESTS = {'hadoop':demo}
-
+"""
 
 class DemoTopo( Topo ):
     "Demo"
@@ -67,4 +67,4 @@ class DemoTopo( Topo ):
         self.addLink( h6, s5 )
 
 
-topos={"demo":( lambda: demo() )}
+topos={"demo":( lambda: DemoTopo() )}
