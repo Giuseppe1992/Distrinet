@@ -48,7 +48,7 @@ class BlockMapper(DummyMapper):
     def __init__(self, virtual_topo, physical_topo=[],block=10):
         self.physical = physical_topo
         try:
-            self.vNodes = zip(sorted(virtual_topo.hosts(), key= lambda x:int(x[1:])),sorted(virtual_topo.switches(), key= lambda x:int(x[1:])))
+            self.vNodes = zip(sorted(virtual_topo.hosts(), key= lambda x: int(x[1:])),sorted(virtual_topo.switches(), key= lambda x:int(x[1:])))
         except:
             print("Not a valid Mapper for this instance")
             exit(1)
@@ -70,7 +70,73 @@ class BlockMapper(DummyMapper):
         return self.places[node]
 
 
+class OverMapper1(DummyMapper):
+    def __init__(self, virtual_topo, physical_topo=[],over=1):
+        self.physical = physical_topo
+        try:
+            self.vNodes = zip(sorted(virtual_topo.hosts(), key= lambda x: int(x[1:])),sorted(virtual_topo.switches(), key= lambda x:int(x[1:])))
+        except:
+            print("Not a valid Mapper for this instance")
+            exit(1)
+        self.places = self.__places(self.vNodes, physical_topo,over)
 
+    def __places(self, vNodes, physical_topo, over):
+        places={}
+        vNodes= list(vNodes)
+        jump = (len(vNodes) // len(physical_topo))-over
+        if len(vNodes) % len(physical_topo) !=0:
+            raise Exception("OverMapper, wrong topology")
+        overloaded_machine = len(physical_topo)//2
+        counter=0
+        id_mapping=[]
+        for i in range(len(physical_topo)):
+            if i == overloaded_machine:
+                over_jump = (len(vNodes) //len(physical_topo)) + (len(physical_topo)-1)*over
+                id_mapping.append(list(range(counter, counter + over_jump)))
+                counter += over_jump
+            else:
+                id_mapping.append(list(range(counter,counter+jump)))
+                counter += jump
+
+        for i, (v, s) in enumerate(vNodes):
+            for c, j in enumerate(id_mapping):
+                if i in j:
+                    places[v] = physical_topo[c]
+                    places[s] = physical_topo[c]
+
+        return places
+
+    def place(self, node):
+        return self.places[node]
+
+
+class OverMapper2(OverMapper1):
+    def __init__(self, virtual_topo, physical_topo=[], over=2):
+        super(OverMapper2, self).__init__(virtual_topo, physical_topo=physical_topo, over=over)
+
+class OverMapper3(OverMapper1):
+    def __init__(self, virtual_topo, physical_topo=[], over=3):
+        super(OverMapper3, self).__init__(virtual_topo, physical_topo=physical_topo, over=over)
+
+class OverMapper4(OverMapper1):
+    def __init__(self, virtual_topo, physical_topo=[], over=4):
+        super(OverMapper4, self).__init__(virtual_topo, physical_topo=physical_topo, over=over)
+
+class OverMapper5(OverMapper1):
+    def __init__(self, virtual_topo, physical_topo=[], over=5):
+        super(OverMapper5, self).__init__(virtual_topo, physical_topo=physical_topo, over=over)
+
+class OverMapper6(OverMapper1):
+    def __init__(self, virtual_topo, physical_topo=[], over=6):
+        super(OverMapper6, self).__init__(virtual_topo, physical_topo=physical_topo, over=over)
+
+class OverMapper7(OverMapper1):
+    def __init__(self, virtual_topo, physical_topo=[], over=7):
+        super(OverMapper7, self).__init__(virtual_topo, physical_topo=physical_topo, over=over)
+
+class OverMapper8(OverMapper1):
+    def __init__(self, virtual_topo, physical_topo=[], over=8):
+        super(OverMapper8, self).__init__(virtual_topo, physical_topo=physical_topo, over=over)
 
 class Mapper(object):
     def __init__(self, virtual_topo, physical_topo, solver=EmbedGreedy):

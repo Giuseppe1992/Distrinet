@@ -176,7 +176,7 @@ from mininet.provision.awsprovision import (optimizationAWSHelper, distrinetAWS)
 from mininet.dutil import (default_images)
 from mininet.dcli import (DCLI)
 
-
+from mininet.mapper.mapper import OverMapper1,OverMapper2,OverMapper3,OverMapper4,OverMapper5,OverMapper6,OverMapper7,OverMapper8
 
 from mininet.provision.provision import Provision
 
@@ -189,9 +189,13 @@ CONTROLLERS.update({'lxcremote': LxcRemoteController,
 
 # == 
 MAPPERDEF = 'roundRobin'
-MAPPERS = { 'roundRobin': RoundRobinMapper , "block":BlockMapper, "embeddedGreedy":EmbedGreedy,
+MAPPERS = { 'roundRobin': RoundRobinMapper , "block": BlockMapper, "embeddedGreedy":EmbedGreedy,
             "embeddedBalanced":EmbedBalanced, "embeddedPartition":EmbedPartition,
-            "bfdp":BestFitDopProduct,"ffdp":FirstFitDecreasingPriority,"ffod":FirstFitOrderedDeviation}
+            "bfdp":BestFitDopProduct,"ffdp":FirstFitDecreasingPriority,"ffod":FirstFitOrderedDeviation,
+            "o1":OverMapper1,"o2":OverMapper2,"o3":OverMapper3,"o4":OverMapper4,
+            "o5":OverMapper5,"o6":OverMapper6,"o7":OverMapper7,"o8":OverMapper8
+
+            }
 
 PROVISIONDEF = 'aws'
 PROVISIONS = { 'aws': optimizationAWSHelper }
@@ -549,7 +553,7 @@ class DistrinetRunner( object ):
             waitConnected=False
             build=False
             if not opts.placement_file_path:
-                if opts.mapper in ["roundRobin", "block"]:
+                if opts.mapper in ["roundRobin", "block"]+[f"o{x}" for x in range(1,10)]:
                     mapper = MAPPERS[ opts.mapper ](virtual_topo=topo, physical_topo=workers)
                 elif opts.mapper in ["embeddedGreedy", "embeddedBalanced", "embeddedPartition"]:
                     if not self.check_if_file_exists(json_path_physical_topology + ".json"):
