@@ -83,7 +83,10 @@ def makeRules(switch,number_of_switches):
 
     return ovs_rules
 
-
+def makeNormalSwitch(topo,net):
+    for vswitch in sorted(topo.switches()):
+        makeFile(net, vswitch, [f'priority=9999,actions=output:NORMAL'], "/root/rules", overwrite=False)
+        net.nameToNode[vswitch].cmd(f"ovs-ofctl add-flows {vswitch} /root/rules")
 
 def hadoop_test(mn):
     topo = mn.topo
@@ -94,8 +97,9 @@ def hadoop_test(mn):
     output ("# populate etc/hadoop/slaves\n")
     makeSlaves(topo=topo, net=mn)
 
-    makePermanentSwitchRules(topo,mn)
-
+    output ("# make permanent switch rules\n")
+    #makePermanentSwitchRules(topo,mn)
+    makeNormalSwitch(topo,mn)
     for h in topo.hosts():
         output(f"{h}")
         output(mn.nameToNode["h1"].cmd(f"ping {h} -c 1"))
