@@ -70,7 +70,7 @@ class Tree2Topo(Tree4Topo):
 # we need the right images to run hadoop
 PREBUILD = [default_images, toDemo]
 #TOPOS={}
-topos = { 'demo_topo': ( lambda: DemoTopo() ) }
+topos = { 'demo_topo': ( lambda: Tree4Topo() ) }
 
 # adding the test in the suite
 TESTS = {'demo_test':demo_test}
