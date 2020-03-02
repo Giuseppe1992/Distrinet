@@ -31,7 +31,7 @@ class Tree4Topo( Topo ):
 
     def add_tree(self,name, deep=3, root=1):
         switches = ["s{}".format(x) for x in range(root, root+(2**deep)-1)]
-        hosts = ["h{}".format(x) for x in range(root, root+(2**deep))]
+        hosts = ["t{}-h{}".format(name, x) for x in range(root, root+(2**deep))]
         arr_tree = [node for node in switches+hosts]
         for n in switches:
             self.addSwitch(n)
