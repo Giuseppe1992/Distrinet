@@ -32,7 +32,7 @@ class Tree4Topo( Topo ):
     def add_tree(self,name, deep=3, root=1):
         switches = ["s{}".format(x) for x in range(root, root+(2**deep)-1)]
         hosts = ["t{}-h{}".format(name, x) for x in range(root, root+(2**deep))]
-        arr_tree = [node for node in switches+hosts]
+        arr_tree = switches + hosts
         for n in switches:
             self.addSwitch(n)
         for n in hosts:
@@ -41,7 +41,8 @@ class Tree4Topo( Topo ):
         #right child = 2(n+1)
         #left child = 2n + 1
         for c,node in enumerate(switches):
-            self.addLink(arr_tree[(2*c)+1],arr_tree[2*(c+1)])
+            self.addLink(arr_tree[(2*c)+1],arr_tree[c])
+            self.addLink(arr_tree[c],arr_tree[2*(c+1)])
         #return the root of the tree
         return switches[0]
 
@@ -68,7 +69,7 @@ class Tree2Topo(Tree4Topo):
         self.addLink(r1, r2)
 
 # we need the right images to run hadoop
-PREBUILD = [default_images, toDemo]
+PREBUILD = [default_images]
 #TOPOS={}
 topos = { 'demo_topo': ( lambda: Tree4Topo() ) }
 
