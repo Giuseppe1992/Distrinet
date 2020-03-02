@@ -12,7 +12,7 @@ def demo_test(mn):
         h.cmd(cmd)
     sleep(5)
 
-    for host in mn.topos:
+    for host in mn.hosts:
         if "t1" in host.name:
             rec = mn.nameToNode["t2-"+host.name.split("-")[1]]
             ip = rec.IP()
@@ -31,7 +31,7 @@ class Tree4Topo( Topo ):
 
     def add_tree(self,name, deep=3, root=1):
         switches = ["s{}".format(x) for x in range(root, root+(2**deep)-1)]
-        hosts = ["t{}-h{}".format(name, x) for x in range(root, root+(2**deep))]
+        hosts = ["{}-h{}".format(name, x) for x in range(1, (2**deep)+1)]
         arr_tree = switches + hosts
         for n in switches:
             self.addSwitch(n)
