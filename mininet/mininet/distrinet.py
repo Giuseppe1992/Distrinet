@@ -531,8 +531,8 @@ class Distrinet( Mininet ):
             for node in nodes:
                 _info ("createContainer {} ".format( node.name))
                 node.createContainer()
-                counter+=1
-                if counter >= 5:
+                counter += 1
+                if counter >= 20:
                     sleep(5)
                     counter=0
 

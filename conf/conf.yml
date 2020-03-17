@@ -6,16 +6,11 @@ ssh:
   client_keys: ["/Users/giuseppe/.ssh/id_rsa"]
   bastion: "Bastion host IP 'xxx.xxx.xxx.xxx'"
 
-port_forwarding:
-  - local: 8181
-    proto: 'tcp'
-    ip: '192.168.0.250'
-    remote: 8181
 
 aws:
   region: "eu-central-1"
   user: "ubuntu"
-  volumeSize: "8"
+  volumeSize: "20"
   image_name: "ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-20190722.1"
   key_name_aws: "id_rsa"
   network_acl:
@@ -37,4 +32,4 @@ cluster:
 
 mapper:
   physical_infrastructure_path: "PATH TO JSON FILE (do not include .json)"
-  cloud_instances_prices: "PATH TO JSON FILE (do not include .json)"
+  cloud_instances_prices: "/root/.distrinet/general_purpose_exp"

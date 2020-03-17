@@ -1,0 +1,27 @@
+{
+  "m5.xlarge": {
+    "vCPU": 4,
+    "memory": 16.0,
+    "hourly_cost": 0.23
+  },
+  "m5.2xlarge": {
+    "vCPU": 8,
+    "memory": 32.0,
+    "hourly_cost": 0.46
+  },
+  "m5.4xlarge": {
+    "vCPU": 16,
+    "memory": 64.0,
+    "hourly_cost": 0.92
+  },
+  "m5.8xlarge": {
+    "vCPU": 32,
+    "memory": 128.0,
+    "hourly_cost": 1.84
+  },
+  "m5.12xlarge": {
+    "vCPU": 48,
+    "memory": 192.0,
+    "hourly_cost": 2.76
+  }
+}
