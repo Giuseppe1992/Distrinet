@@ -578,6 +578,7 @@ class DistrinetRunner( object ):
                 # get the info from the experiment file
                 jump=experiment_data["bastion"]
                 workers=experiment_data["workers"]
+                master=workers[0]
                 # use the dummy mapper with the placement in the experiment file
                 mapper= DummyMapper(places=experiment_data["mapping"])
 
