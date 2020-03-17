@@ -719,7 +719,8 @@ class distrinetAWS(Provision):
             sshUserSession = self.createSshSession(host=bastionHostPublicIp, username=MAIN_USER)
             self.grantRootAccess(SshSession=sshUserSession)
             self.setupBastionHost(SshSession=sshUserSession, PrivateKey=privateKey)
-            self.waitInstancesRunning(instancesIdList=workerHostsId)
+            if workerHostsId:
+                self.waitInstancesRunning(instancesIdList=workerHostsId)
             bar.update(8)
             sleep(30)
 
