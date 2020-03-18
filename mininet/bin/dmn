@@ -527,6 +527,10 @@ class DistrinetRunner( object ):
                 if not self.check_if_file_exists(json_path_cloud_prices+".json"):
                     error(f"{json_path_cloud_prices} does not exist")
                 pack = Packing(virtual_topo=topo,cloud_prices=json_path_cloud_prices,solver=MAPPERS[opts.mapper])
+                if bool(opts.optimization_only):
+                    "OPTIMIZATION ONLY ON AWS -- NOT BOOKING THE RESOURCES"
+                    output(pack)
+                    exit(0)
                 provisioner = PROVISIONS[ opts.provision ](pack.places)
                 jump, master, workerHostsPrivateIp, vpcID = provisioner.deploy()
                 workers = [master] + workerHostsPrivateIp
