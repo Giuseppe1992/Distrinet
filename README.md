@@ -1,6 +1,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![python](https://img.shields.io/badge/python-3.6%20%7C%203.7-blue.svg?cacheSeconds=2592000)
-[![Build Status](https://travis-ci.com/atomassi/mapping_distrinet.svg?token=hrhTT4pN2zzCVx7pvXNv&branch=master)](https://travis-ci.com/atomassi/mapping_distrinet)
+![Build Status](https://travis-ci.org/Giuseppe1992/Distrinet.svg?branch=master)
 
 # Distrinet
 
