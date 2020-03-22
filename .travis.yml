@@ -1,4 +1,14 @@
-dist: xenial
+jobs:
+  include:
+    - os: linux
+      dist: trusty
+    - os: linux
+      dist: xenial
+    - os: linux
+      dist: bionic
+    - os: osx
+      dist: xcode11
+
 language: python
 python:
     - 3.6
