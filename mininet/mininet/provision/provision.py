@@ -22,7 +22,7 @@ class Provision (object):
         """
         Deploy the instances and blocks until it is fully deployed.
 
-        returns the bastion node name
+        returns the bastion and the workers
         """
         pass
 
