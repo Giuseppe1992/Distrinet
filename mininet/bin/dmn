@@ -529,13 +529,14 @@ class DistrinetRunner( object ):
                 pack = Packing(virtual_topo=topo,cloud_prices=json_path_cloud_prices,solver=MAPPERS[opts.mapper])
                 if bool(opts.optimization_only):
                     "OPTIMIZATION ONLY ON AWS -- NOT BOOKING THE RESOURCES"
-                    output(pack)
+
+                    output(set(pack.places.values()))
                     exit(0)
                 provisioner = PROVISIONS[ opts.provision ](pack.places)
                 jump, master, workerHostsPrivateIp, vpcID = provisioner.deploy()
                 workers = [master] + workerHostsPrivateIp
                 instances_created=distrinetAWS.getAllInstancesInVPC(vpcID)
-                packing_helper= __packing_helper(pack.places,instances_created)
+                packing_helper = __packing_helper(pack.places,instances_created)
                 places_packing={vNode: packing_helper[vNode][2] for vNode in packing_helper}
 
         # Cloud already provisioned 
