@@ -122,7 +122,7 @@ import asyncio
 import time
 from threading import Thread
 
-from mininet.assh import ASsh
+from mininet.ssh import SSH
 ##############################
 
 # Mininet version: should be consistent with README and LICENSE
@@ -221,7 +221,7 @@ class Distrinet( Mininet ):
         self.client_keys = client_keys
         self.masterhost = master
         _info ("Connecting to master node\n")
-        self.masterSsh = ASsh(loop=self.loop, host=self.masterhost, username=self.user, bastion=self.jump, client_keys=self.client_keys)
+        self.masterSsh = SSH(loop=self.loop, host=self.masterhost, username=self.user, bastion=self.jump, client_keys=self.client_keys)
         self.masterSsh.connect()
         self.masterSsh.waitConnected()
         _info ("connected to master node\n")
@@ -478,7 +478,7 @@ class Distrinet( Mininet ):
                 else:
                     self.addController( 'c%d' % i, cls )
 
-#        from assh import ASsh
+#        from ssh import SSH
         # prepare SSH connection to the master
 
         info( '*** Adding hosts:\n' )

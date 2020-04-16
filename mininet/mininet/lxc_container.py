@@ -21,7 +21,7 @@ import asyncio
 from threading import Thread
 import time
 
-from mininet.assh import ASsh
+from mininet.ssh import SSH
 
 # XXX TODO DSA - make it clean
 # #####################
@@ -76,7 +76,7 @@ class LxcNode (Node):
     stderr : asyncssh.stream.SSHReader
         STDERR of the process
 
-    master : ASsh
+    master : SSH
         SSH connection to the master
     containerInterfaces : dict
         container interfaces
@@ -181,12 +181,12 @@ class LxcNode (Node):
         # prepare the machine
         # SSH with the target
         if self.target:
-            self.targetSsh = ASsh(loop=self.loop, host=self.target, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
+            self.targetSsh = SSH(loop=self.loop, host=self.target, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
         # SSH with the node
         admin_ip = self.admin_ip
         if "/" in admin_ip:
                 admin_ip, prefix = admin_ip.split("/")
-        self.ssh = ASsh(loop=self.loop, host=admin_ip, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
+        self.ssh = SSH(loop=self.loop, host=admin_ip, username=self.username, bastion=self.bastion, client_keys=self.client_keys)
 
     def configureContainer(self, adminbr="admin-br", wait=True):
 #        # connect the node to the admin network

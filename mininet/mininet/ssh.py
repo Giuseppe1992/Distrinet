@@ -6,7 +6,10 @@ import time
 
 from mininet.dutil import _info
 
-class ASsh(object):
+class SSH(object):
+    """
+    Class to connect to a remote node using SSH
+    """
     def __init__(self, loop, host, port=22, username=None, bastion=None,
                        bastion_port=22, client_keys=None,
                        **params):
