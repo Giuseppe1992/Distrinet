@@ -1,3 +1,7 @@
+"""
+author: Damien Saucez (damien.saucez@gmail.com) 
+"""
+
 from subprocess import PIPE
 from mininet.log import info, error, debug, output, warn
 import asyncio, asyncssh
@@ -36,10 +40,8 @@ class SSH(object):
         List with the path to the authentications keys to use. Each entry
         consists of a path to the authentication key, e.g.,
         ['/home/example/.ssh/id_rsa_a', '/home/example/keys/key1'].
-    task : _asyncio.Task
-        Current task in execution.
-    tasks : list
-        Current tasks in execution (when multiple tasks have been ordered)
+    tasks : list of _asyncio.Task
+        Current tasks in execution 
     tunnel : asyncssh.listener.SSHForwardListener
         Actual tunnel through the bastion
     conn : asyncssh.connection.SSHClientConnection
@@ -49,7 +51,6 @@ class SSH(object):
         Hostname to actually use to connect to the host.
     connection_port : int
         Port number to actually use to connect to the host.
-
     """
     def __init__(self, loop, host, port=22, username=None, bastion=None,
                        bastion_port=22, bastion_username=None,
@@ -104,8 +105,7 @@ class SSH(object):
         self.bastion_port = bastion_port
         self.bastion_username = bastion_username
 
-        # current task in execution
-        self.task = None
+        # current tasks in execution
         self.tasks = []
 
         # SSH tunnel through the bastion
@@ -224,19 +224,67 @@ class SSH(object):
     def connected(self):
         return self.conn is not None
 
-    def sendCmd(self, cmd, multi=False):
+    def sendCmd(self, cmd):
+        """
+        Launch a command on the host and don't wait for its termination. The
+        task associated to the command is added at the end of the tasks list.
+
+        Parameters
+        ----------
+        cmd : str
+            The command to launch on the host.
+        
+        Returns
+        -------
+        _asyncio.Task
+            The task corresponding to the command call. The result of the task
+            will be the standard output of the command.
+
+        Notes
+        -----
+        This method does not block. To retrieve the result of the command, use
+        `SSH.waitOutput`, `SSH.waitAll`, or operate directly on the task.
+
+        See also
+        --------
+        `SSH.waitOutput`
+        `SSH.waitAll`
+        """
         task = self.loop.create_task(self._run(cmd))
 
-        if multi:
-            self.tasks.append(task)
-        else:
-            self.task = task
+        self.tasks.append(task)
+
+        return task
 
     def cmd(self, cmd):
+        """
+        Executes a command on the host and returns its standard output result.
+
+        Parameters
+        ----------
+        cmd : str
+            The command to run on the host.
+
+        Returns
+        -------
+        str
+            The standard output of the command once finished.
+
+        Notes
+        -----
+        This method is blocking.
+        """
         self.sendCmd(cmd)
         return self.waitOutput()
     
-    def waitAllOutput(self):
+    def waitAll(self):
+        """
+        Waits for all tasks in the tasks list to be done.
+
+        Post
+        ----
+        Tasks list is empty.
+        """
         while len(self.tasks) > 0:
             if self.tasks[0].done():
                 self.tasks.pop(0)
@@ -244,11 +292,42 @@ class SSH(object):
                 time.sleep(0.001)
 
     def waitOutput(self):
-        while not self.task.done():
+        """
+        Waits for the first task in the tasks lists to be done and returns the
+        task result.
+
+        Pre
+        ---
+        There is at least one task in the tasks list.
+
+        Post
+        ----
+        The first task of the list has been removed from the list.
+       
+        Returns
+        -------
+        str
+            The result of the task.
+        """
+        task = self.tasks.pop()
+        while not task.done():
             time.sleep(0.001)
-        return self.task.result()
+        return task.result()
 
     async def _run(self, cmd):
+        """
+        Runs a command on a host and returns its standard output
+
+        Parameters
+        ----------
+        cmd : str
+            The command to run on the host.
+
+        Returns
+        -------
+        str
+            The standard output of the command once finished.
+        """
         result = await self.conn.run(cmd)
         return result.stdout
 
