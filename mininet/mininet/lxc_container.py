@@ -21,7 +21,7 @@ import asyncio
 from threading import Thread
 import time
 
-from mininet.ssh import SSH
+from mininet.utils.ssh import SSH
 
 # XXX TODO DSA - make it clean
 # #####################

@@ -122,7 +122,7 @@ import asyncio
 import time
 from threading import Thread
 
-from mininet.ssh import SSH
+from mininet.utils.ssh import SSH
 ##############################
 
 # Mininet version: should be consistent with README and LICENSE
