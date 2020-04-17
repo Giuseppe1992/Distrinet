@@ -14,7 +14,7 @@ class SSH(object):
     """
     Class to interact with a remote node using SSH.
 
-    The class support direct connection to the host or connection via a
+    The class supports direct connection to the host or connection via a
     bastion. When a bastion is used, an SSH connection is established to the
     bastion and is used as a tunnel to connect ot the host.
     The tunnel is setup as follows:
@@ -51,6 +51,9 @@ class SSH(object):
         Hostname to actually use to connect to the host.
     connection_port : int
         Port number to actually use to connect to the host.
+    run : bool
+        Specifies wether or not the connection is active (True for active,
+        False for inactive)
     """
     def __init__(self, loop, host, port=22, username=None, bastion=None,
                        bastion_port=22, bastion_username=None,
@@ -88,7 +91,7 @@ class SSH(object):
         No SSH operation is performed at this stage, it is only used to preset
         the object attributes.
         """
-        # the node runs
+        # the connection is active
         self.run = True
 
         # asyncio loop
@@ -122,7 +125,7 @@ class SSH(object):
 
     def createTunnel(self):
         """
-        Creates a tunnel with the bastion if needed (i.e., a bastion is
+        Create a tunnel with the bastion if needed (i.e., a bastion is
         specified).
         """
         if self.bastion is not None:
@@ -133,8 +136,8 @@ class SSH(object):
    
     async def _tunnel(self, bastion, host, bastion_port=22, port=22, bastion_username=None):
         """
-        Establishes SSH local port forwarding to `host:port` via the bastion
-        node (`bastion`:`bastion_port`).
+        Establish SSH local port forwarding to `host:port` via the bastion node
+        (`bastion`:`bastion_port`).
 
         The tunnel is stored in `self.tunnel`.
         The local port number is obtained by calling `get_port()` on the
@@ -164,7 +167,7 @@ class SSH(object):
 
     def waitTunneled(self):
         """
-        Waits that the tunnel with the bastion is established (if needed) and
+        Wait that the tunnel with the bastion is established (if needed) and
         updates `connection_host` and `connection_port` attributes to use it
         instead of having a direct connection to the host
         """
@@ -179,19 +182,26 @@ class SSH(object):
 
     def connect(self):
         """
-        Establishes an SSH connection to the host
+        Establish an SSH connection to the host. Make a tunnel with the bastion
+        first when a bastion is provided.
+
+        Notes
+        -----
+        This method is blocking for the establishment of the tunnel with the
+        bastion but is non-blocking for the establishment of the connection
+        with the host.
         """
         if self.bastion:
-            # create a tunnel via the bastion to connect to the hostA
+            # create a tunnel via the bastion to connect to the host
             self.createTunnel()
-            # wait fot th tunnel to be created
+            # wait for the tunnel to be created
             self.waitTunneled()
   
         task = self.loop.create_task(self._connect(host=self.connection_host, port=self.connection_port))
 
     async def _connect(self, host, port):
         """
-        Establishes an SSH connection to `host`:`port`.
+        Establish an SSH connection to `host`:`port`.
 
         Parameters
         ----------
@@ -215,13 +225,22 @@ class SSH(object):
 
     def waitConnected(self):
         """
-        Blocking until the node is actually started
+        Blocking until the SSH connection is established with the host.
         """
 
         while not self.connected():
             time.sleep(0.001)
 
     def connected(self):
+        """
+        Determine whether or not the SSH connection to the host is established.
+
+        Returns
+        -------
+        bool
+            True if the connection is established. Otherwise, a False is
+            returned.
+        """
         return self.conn is not None
 
     def sendCmd(self, cmd):
@@ -258,7 +277,7 @@ class SSH(object):
 
     def cmd(self, cmd):
         """
-        Executes a command on the host and returns its standard output result.
+        Execute a command on the host and returns its standard output result.
 
         Parameters
         ----------
@@ -279,7 +298,7 @@ class SSH(object):
     
     def waitAll(self):
         """
-        Waits for all tasks in the tasks list to be done.
+        Wait for all tasks in the tasks list to be done.
 
         Post
         ----
@@ -293,7 +312,7 @@ class SSH(object):
 
     def waitOutput(self):
         """
-        Waits for the first task in the tasks lists to be done and returns the
+        Wait for the first task in the tasks lists to be done and returns the
         task result.
 
         Pre
@@ -316,7 +335,7 @@ class SSH(object):
 
     async def _run(self, cmd):
         """
-        Runs a command on a host and returns its standard output
+        Run a command on a host and returns its standard output.
 
         Parameters
         ----------
@@ -331,18 +350,66 @@ class SSH(object):
         result = await self.conn.run(cmd)
         return result.stdout
 
+    def stop(self):
+        """
+        Gracefully stop the SSH connection.
+        
+        See also
+        --------
+        `SSH.run`
+        `SSH.close`
+
+        Notes
+        -----
+        The SSH connection is not closed.
+        """
+        self.run = False
+
     def close(self):
+        """
+        Close the SSH connection to the host.  Close the tunnel with the
+        bastion when a bastion is used.
+        """
         self.conn.close()
 
         if self.tunnel:
             self.tunnel.close()
 
     async def createProcess(self, cmd, stdin=None, stdout=None, stderr=None):
+        """
+        Create a process executing `cmd` on the host.
+
+        Parameters
+        ----------
+        cmd : str
+            Command to be run by the process.
+        stdin : int (optional, default=None)
+            File descriptor to which attach the standard input of the created
+            process. None being DEVNULL.
+        stdout : int (optional, default=None)
+            File descriptor to which attach the standard input of the created
+            process. None being DEVNULL.
+        stderr : int (optional, default=None)
+            File descriptor to which attach the standard input of the created
+            process. None being DEVNULL.
+
+        Returns
+        -------
+        asyncssh.SSHClientProcess
+            The process handler of the created process.
+        """
         process = await self.conn.create_process(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
         return process
 
-    # XXX - SAME
     def __str__( self ):
-        "Abbreviated string representation"
+        """
+        Abbreviated string representation
+
+        Returns
+        -------
+        str
+            String representation of the object.
+        """
         return self.host
 
