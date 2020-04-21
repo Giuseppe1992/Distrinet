@@ -8,16 +8,19 @@ from botocore.exceptions import ClientError
 import progressbar
 
 conf = Provision.get_configurations()
-aws_conf = conf["aws"]
-AWS_REGION = aws_conf["region"]
-SRC_PLAYBOOKS_DIR = "mininet/provision/playbooks"
-DST_PLAYBOOKS_DIR = "/root/playbooks"
-VOLUME_SIZE= int(aws_conf["volumeSize"])
-MAIN_USER = aws_conf["user"]
-KEY_PAIR_NAME_WORKERS = 'DistrinetKey-' + str(uuid.uuid4().hex)
-IP_PERMISSION = aws_conf["network_acl"]
-IMAGE_NAME_AWS = aws_conf["image_name"]
-KEY_PAIR_NAME_BASTION = aws_conf["key_name_aws"]
+if "aws" in conf:
+    aws_conf = conf["aws"]
+    AWS_REGION = aws_conf["region"]
+    SRC_PLAYBOOKS_DIR = "mininet/provision/playbooks"
+    DST_PLAYBOOKS_DIR = "/root/playbooks"
+    VOLUME_SIZE= int(aws_conf["volumeSize"])
+    MAIN_USER = aws_conf["user"]
+    KEY_PAIR_NAME_WORKERS = 'DistrinetKey-' + str(uuid.uuid4().hex)
+    IP_PERMISSION = aws_conf["network_acl"]
+    IMAGE_NAME_AWS = aws_conf["image_name"]
+    KEY_PAIR_NAME_BASTION = aws_conf["key_name_aws"]
+else:
+    AWS_REGION = "eu-central-1"
 
 
 class distrinetAWS(Provision):
