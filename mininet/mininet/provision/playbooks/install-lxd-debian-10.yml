@@ -1,0 +1,76 @@
+---
+#
+- hosts      : master
+  remote_user: root
+  tasks      :
+
+    - name   : Download switch
+      get_url:
+        url : http://www-sop.inria.fr/members/Damien.Saucez/images/switch.tar.gz
+        dest: ~/switch.tar.gz
+        mode: 0666
+
+    - name   : Download ubuntu18:04
+      get_url:
+        url : http://www-sop.inria.fr/members/Damien.Saucez/images/ubuntu.tar.gz
+        dest: ~/ubuntu.tar.gz
+        mode: 0666
+
+
+
+- hosts      : all
+  remote_user: root
+  tasks      :
+    - name: install python3-pip
+      apt :
+        update_cache: true
+        name        : python3-pip
+
+    - name: install python-pip
+      apt :
+        name        : python-pip
+
+    - name: install htop
+      apt :
+        name: htop
+
+    - name: install ethtool
+      apt :
+        name: ethtool
+
+    - name: install bridge-utils
+      apt :
+        name: bridge-utils
+
+    - name: install net-tools
+      apt :
+        name: net-tools
+
+    - name: install pexpect
+      pip :
+        name: pexpect
+
+    - name: install ovs
+      apt :
+        name: openvswitch-switch
+
+    - name: install btrfs-tools
+      apt:
+        name: btrfs-tools
+
+    - name: snapd
+      apt:
+        name: snapd
+
+    - name: lxd
+      raw: snap install lxd --channel=3.0/stable
+
+    - name: add LXC to the path
+      raw: ln -s /snap/bin/lxc /sbin
+
+    - name: add LXD to the path
+      raw: ln -s /snap/bin/lxd /sbin
+
+    - name: install ryu
+      apt:
+        name: python3-ryu
