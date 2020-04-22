@@ -18,7 +18,7 @@
 
 
 
-- hosts      : all
+- hosts      : master
   remote_user: root
   tasks      :
     - name: install python3-pip
@@ -58,13 +58,29 @@
       apt:
         name: btrfs-tools
 
-    - name: install lxd
+    - name: remove lxd
       apt:
         name: lxd
+        state: absent
 
-    - name: install lxd-client
-      apt :
-        name: lxd-client
+    - name: snapd
+      apt:
+        name: snapd
+
+    - name: snap core
+      snap:
+        name: core
+
+    - name: lxd
+      snap:
+        name: lxd
+        channel: 4.0/stable
+
+    - name: add LXC to the path
+      raw: ln -fs /snap/bin/lxc /sbin
+
+    - name: add LXD to the path
+      raw: ln -fs /snap/bin/lxd /sbin
 
     - name: install ryu
       apt:
