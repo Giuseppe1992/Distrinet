@@ -77,10 +77,10 @@
         channel: 4.0/stable
 
     - name: add LXC to the path
-      raw: ln -fs /snap/bin/lxc /sbin
+      raw: ln -s /snap/bin/lxc /sbin
 
     - name: add LXD to the path
-      raw: ln -fs /snap/bin/lxd /sbin
+      raw: ln -s /snap/bin/lxd /sbin
 
     - name: install ryu
       apt:
