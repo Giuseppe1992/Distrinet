@@ -62,14 +62,11 @@
       apt:
         name: snapd
 
+    - name: add snap to non-interactive bash PATH
+      raw: ex -s -c '1i|PATH=$PATH:/snap/bin' -c x /etc/bash.bashrc
+
     - name: lxd
       raw: snap install lxd --channel=3.0/stable
-
-    - name: add LXC to the path
-      raw: ln -s /snap/bin/lxc /sbin
-
-    - name: add LXD to the path
-      raw: ln -s /snap/bin/lxd /sbin
 
     - name: install ryu
       apt:
