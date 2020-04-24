@@ -16,7 +16,11 @@
         dest: ~/ubuntu.tar.gz
         mode: 0666
 
-
+#    - name   : Download Debian:10
+#      get_url:
+#        url : http://www-sop.inria.fr/members/Damien.Saucez/images/debian.tar.gz
+#        dest: ~/debian.tar.gz
+#        mode: 0666
 
 - hosts      : all
   remote_user: root
