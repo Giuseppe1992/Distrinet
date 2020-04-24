@@ -37,6 +37,11 @@
         src  : ~/ubuntu.tar.gz
         dest : ~/ubuntu.tar.gz
 
+#    - name   : distribute debian image
+#      copy   :
+#        src  : ~/debian.tar.gz
+#        dest : ~/debian.tar.gz
+
 #    - name   : distribute master image
 #      copy   :
 #        src  : ~/ubuntu-hadoop-master.tar.gz
@@ -61,6 +66,9 @@
 
     - name   : create ubuntu18.04 image -- alias ubuntu
       command: lxc image import ~/ubuntu.tar.gz --alias ubuntu --public
+
+#    - name   : create debian10 image -- alias debian
+#      command: lxc image import ~/debian.tar.gz --alias debian --public
 
 #    - name   : create master image
 #      command: lxc image import ~/ubuntu-hadoop-master.tar.gz --alias ubuntu-hadoop-master --public
