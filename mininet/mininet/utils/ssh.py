@@ -47,6 +47,12 @@ class SSH(object):
     conn : asyncssh.connection.SSHClientConnection
         Actual SSH connection with the host
         hostname to connect to
+    keep_alive_interval : int or float
+        The time in seconds to wait before sending a keep-alive message to the
+        host if no data has been received.
+    keep_alive_count_max : int
+        The maximum number of keepalive messages which will be sent to the host
+        without getting a response before closing the connection.
     connection_host : str
         Hostname to actually use to connect to the host.
     connection_port : int
@@ -57,7 +63,9 @@ class SSH(object):
     """
     def __init__(self, loop, host, port=22, username=None, bastion=None,
                        bastion_port=22, bastion_username=None,
-                       client_keys=None, **params):
+                       client_keys=None,
+                       keep_alive_interval=60, keep_alive_count_max=3,
+                       **params):
         """
         Initialize an SSH connection object to connect to a host using SSHv2.
 
@@ -85,6 +93,14 @@ class SSH(object):
             List with the path to the authentications keys to use. Each entry
             consists of a path to the authentication key, e.g.,
             ['/home/example/.ssh/id_rsa_a', '/home/example/keys/key1'].
+        keep_alive_interval : int or float (optional, default=60)
+            The time in seconds to wait before sending a keep-alive message to
+            the host if no data has been received. This defaults to 0, which
+            disables sending these messages.
+        keep_alive_count_max : int (optional, default=3)
+            The maximum number of keepalive messages which will be sent to the
+            host without getting a response before closing the connection. This
+            defaults to 3, but only applies when interval is non-zero.
 
         Notes
         -----
@@ -116,6 +132,10 @@ class SSH(object):
 
         # SSH connection with the host
         self.conn = None
+
+        # Keep Alive parameters with the host
+        self.keep_alive_interval = keep_alive_interval
+        self.keep_alive_count_max = keep_alive_count_max
 
         # hostname to connect to
         self.connection_host = self.host
@@ -216,8 +236,11 @@ class SSH(object):
 
         while True:
             try:
+                # connect to the host
                 async with connect(host=host, port=port) as conn:
                     self.conn = conn
+                    # configure keepalive
+                    self.conn.set_keepalive(interval=self.keep_alive_interval, count_max=self.keep_alive_count_max)
                     while self.run:
                         await asyncio.sleep(1)
             except Exception as e:
