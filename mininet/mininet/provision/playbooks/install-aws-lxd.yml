@@ -1,6 +1,6 @@
 ---
 
-- hosts: all
+- hosts: master
   tasks:
 
     - name   : Download switch
