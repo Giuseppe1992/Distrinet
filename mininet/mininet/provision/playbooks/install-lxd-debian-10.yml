@@ -62,13 +62,18 @@
       apt:
         name: btrfs-tools
 
-    - name: install lxd
+    - name: snapd
       apt:
-        name: lxd
+        name: snapd
 
-    - name: install lxd-client
-      apt :
-        name: lxd-client
+    - name: lxd
+      raw: snap install lxd --channel=3.0/stable
+
+    - name: add LXC to the path
+      raw: ln -s /snap/bin/lxc /sbin
+
+    - name: add LXD to the path
+      raw: ln -s /snap/bin/lxd /sbin
 
     - name: install ryu
       apt:
