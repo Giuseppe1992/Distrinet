@@ -143,7 +143,7 @@ class RyuLxcController ( OnosLxcController ):
 class LxcRemoteController( object ):
     "Controller running outside of Mininet's control."
 
-    def __init__( self, name, ip='127.0.0.1',
+    def __init__( self, name, ip='192.168.0.1',
                   port=None, **kwargs):
         """Init.
            name: name to give controller
