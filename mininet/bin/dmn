@@ -491,8 +491,8 @@ class DistrinetRunner( object ):
 
             if "mapping_algorithm" in conf:
                 mapping_algorithm = conf["mapping_algorithm"]
-                json_path_physical_topology=mapping_algorithm["physical_infrastructure_path"]
-                json_path_cloud_prices=mapping_algorithm["cloud_instances_prices"]
+                json_path_physical_topology = mapping_algorithm["physical_infrastructure_path"]
+                json_path_cloud_prices= mapping_algorithm["cloud_instances_prices"]
 
         if opts.bastion:
             jump = opts.bastion
