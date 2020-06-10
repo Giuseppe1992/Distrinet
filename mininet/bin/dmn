@@ -167,7 +167,7 @@ from mininet.cloudlink import CloudLink
 from mininet.distrinet import Distrinet
 from mininet.cloudcontroller import (LxcRemoteController, OnosLxcController, RyuLxcController)
 
-from mininet.mapper.mapper import RoundRobinMapper, Mapper, Packing, DummyMapper, BlockMapper
+from mininet.mapper.mapper import RoundRobinMapper, Mapper, Packing, DummyMapper, BlockMapper, RandomMapper
 from distriopt.embedding.algorithms import ( EmbedBalanced, EmbedILP, EmbedPartition, EmbedGreedy)
 from distriopt.packing.algorithms import BestFitDopProduct,FirstFitDecreasingPriority,FirstFitOrderedDeviation
 from mininet.topodc import (DumbbellTopo)
@@ -190,7 +190,7 @@ CONTROLLERS.update({'lxcremote': LxcRemoteController,
 # == 
 MAPPERDEF = 'roundRobin'
 MAPPERS = { 'roundRobin': RoundRobinMapper , "block":BlockMapper, "embeddedGreedy":EmbedGreedy,
-            "embeddedBalanced":EmbedBalanced, "embeddedPartition":EmbedPartition,
+            "embeddedBalanced":EmbedBalanced, "embeddedPartition":EmbedPartition, "random":RandomMapper,
             "bfdp":BestFitDopProduct,"ffdp":FirstFitDecreasingPriority,"ffod":FirstFitOrderedDeviation}
 
 PROVISIONDEF = 'aws'
@@ -383,7 +383,8 @@ class DistrinetRunner( object ):
     # Maybe we'll reorganize this someday...
     # pylint: disable=too-many-branches,too-many-statements,global-statement
 
-    def check_if_file_exists(self,file_path):
+    def check_if_file_exists(self, file_path):
+        output("FILE -->", file_path)
         return Path(file_path).is_file()
 
     def save_experiment(self,experiment):
@@ -492,7 +493,7 @@ class DistrinetRunner( object ):
             if "mapping_algorithm" in conf:
                 mapping_algorithm = conf["mapping_algorithm"]
                 json_path_physical_topology = mapping_algorithm["physical_infrastructure_path"]
-                json_path_cloud_prices= mapping_algorithm["cloud_instances_prices"]
+                json_path_cloud_prices = mapping_algorithm["cloud_instances_prices"]
 
         if opts.bastion:
             jump = opts.bastion
@@ -554,12 +555,13 @@ class DistrinetRunner( object ):
             waitConnected=False
             build=False
             if not opts.placement_file_path:
-                if opts.mapper in ["roundRobin", "block"]:
+                if opts.mapper in ["roundRobin", "block", "random"]:
                     mapper = MAPPERS[ opts.mapper ](virtual_topo=topo, physical_topo=workers)
                 elif opts.mapper in ["embeddedGreedy", "embeddedBalanced", "embeddedPartition"]:
+
                     if not self.check_if_file_exists(json_path_physical_topology + ".json"):
-                        error(f"{json_path_physical_topology} does not exist")
-                    mapper = Mapper(virtual_topo=topo, physical_topo=json_path_physical_topology,solver=MAPPERS[ opts.mapper ])
+                        error(f"{json_path_physical_topology}.json does not exist")
+                    mapper = Mapper(virtual_topo=topo, physical_topo=json_path_physical_topology, solver=MAPPERS[ opts.mapper ])
                 elif opts.mapper in ["bfdp", "ffdp", "ffod"]:
                     mapper = DummyMapper(places=places_packing)
                 else:
@@ -584,6 +586,7 @@ class DistrinetRunner( object ):
                 mapper= DummyMapper(places=experiment_data["mapping"])
 
             info ("*** Mapping: {}\n".format( mapper.places))
+
 
             if bool(opts.optimization_only):
                 exit(0)
@@ -611,6 +614,8 @@ class DistrinetRunner( object ):
                   xterms=opts.xterms, autoSetMacs=opts.mac,
                   autoStaticArp=opts.arp, autoPinCpus=opts.pin,
                   listenPort=opts.listenport )
+
+        mn.mapping_algo=opts.mapper
 
         if opts.ensure_value( 'nat', False ):
             with open( '/etc/resolv.conf' ) as f:

@@ -527,9 +527,15 @@ class Distrinet( Mininet ):
                 node.waitConnectedTarget()
                 _info ("connectedTarget {} ".format( node.name))
 
+            count = 0
             for node in nodes:
                 _info ("createContainer {} ".format( node.name))
                 node.createContainer()
+                count += 1
+                if count > 50:
+                    output("50 nodes created...\n")
+                    sleep(10)
+                    count = 0
 
             for node in nodes:
                 node.waitCreated()

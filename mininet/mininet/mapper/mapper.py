@@ -12,7 +12,7 @@ from distriopt.packing.algorithms import ( BestFitDopProduct,
 
 from distriopt.packing import CloudInstance
 from distriopt.packing.algorithms import BestFitDopProduct,FirstFitDecreasingPriority,FirstFitOrderedDeviation
-
+from random import randint
 
 
 class DummyMapper(object):
@@ -37,6 +37,21 @@ class RoundRobinMapper(DummyMapper):
         for node in vNodes:
             places[node] = physical_topo[i % len(physical_topo)]
             i += 1
+        return places
+
+    def place(self, node):
+        return self.places[node]
+
+class RandomMapper(DummyMapper):
+    def __init__(self, virtual_topo, physical_topo=[]):
+        self.physical = physical_topo
+        self.vNodes = virtual_topo.hosts()+virtual_topo.switches()
+        self.places = self.__places(self.vNodes, physical_topo)
+
+    def __places(self, vNodes, physical_topo):
+        places={}
+        for node in vNodes:
+            places[node] = physical_topo[randint(0,len(physical_topo)-1)]
         return places
 
     def place(self, node):
@@ -70,8 +85,6 @@ class BlockMapper(DummyMapper):
         return self.places[node]
 
 
-
-
 class Mapper(object):
     def __init__(self, virtual_topo, physical_topo, solver=EmbedGreedy):
         """ virtual_topo: virtual topology to map
@@ -99,9 +112,9 @@ class Mapper(object):
         self.prob = self.solver(virtual=self.virtual_topo, physical=self.physical_topo)
 
         time_solution, status = self.prob.solve()
-        if status == "0":
+        if status == "0" or status == 0:
             raise Exception("Failed to solve")
-        elif status == "-1":
+        elif status == "-1" or status == - 1:
             raise Exception("Unfeasible Problem")
 
     def __places(self):
