@@ -167,7 +167,7 @@ from mininet.cloudlink import CloudLink
 from mininet.distrinet import Distrinet
 from mininet.cloudcontroller import (LxcRemoteController, OnosLxcController, RyuLxcController)
 
-from mininet.mapper.mapper import RoundRobinMapper, Mapper, Packing, DummyMapper, BlockMapper, RandomMapper
+from mininet.mapper.mapper import RoundRobinMapper, Mapper, Packing, DummyMapper, BlockMapper, RandomMapper, MaxinetMapper
 from distriopt.embedding.algorithms import ( EmbedBalanced, EmbedILP, EmbedPartition, EmbedGreedy)
 from distriopt.packing.algorithms import BestFitDopProduct,FirstFitDecreasingPriority,FirstFitOrderedDeviation
 from mininet.topodc import (DumbbellTopo)
@@ -189,7 +189,7 @@ CONTROLLERS.update({'lxcremote': LxcRemoteController,
 
 # == 
 MAPPERDEF = 'roundRobin'
-MAPPERS = { 'roundRobin': RoundRobinMapper , "block":BlockMapper, "embeddedGreedy":EmbedGreedy,
+MAPPERS = { 'roundRobin': RoundRobinMapper, "block":BlockMapper, "maxinet":MaxinetMapper, "embeddedGreedy":EmbedGreedy,
             "embeddedBalanced":EmbedBalanced, "embeddedPartition":EmbedPartition, "random":RandomMapper,
             "bfdp":BestFitDopProduct,"ffdp":FirstFitDecreasingPriority,"ffod":FirstFitOrderedDeviation}
 
@@ -555,7 +555,7 @@ class DistrinetRunner( object ):
             waitConnected=False
             build=False
             if not opts.placement_file_path:
-                if opts.mapper in ["roundRobin", "block", "random"]:
+                if opts.mapper in ["roundRobin", "block", "random", "maxinet"]:
                     mapper = MAPPERS[ opts.mapper ](virtual_topo=topo, physical_topo=workers)
                 elif opts.mapper in ["embeddedGreedy", "embeddedBalanced", "embeddedPartition"]:
 
