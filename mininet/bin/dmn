@@ -352,7 +352,7 @@ class DistrinetRunner( object ):
                                 '(experimental!) ' ) )
         opts.add_option("--purge", dest="purge",
                           help="VPC ID", metavar="purge")
-        addDictOption( opts, PROVISIONS, None, 'provision' )
+        #addDictOption( opts, PROVISIONS, None, 'provision' )
         opts.add_option("--placement_file", dest="placement_file_path",
                           help="path to the json describing the mapping of the vNodes", metavar="placement_file_path")
 
@@ -401,6 +401,7 @@ class DistrinetRunner( object ):
 
         opts = self.options
 
+        opts.provision=None
         if opts.cluster:
             servers = opts.cluster.split( ',' )
             for server in servers:
