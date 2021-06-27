@@ -195,6 +195,7 @@ MAPPERS = { 'roundRobin': RoundRobinMapper, "block":BlockMapper, "maxinet":Maxin
 
 PROVISIONDEF = 'aws'
 #PROVISIONS = { 'aws': optimizationAWSHelper }
+PROVISIONS = { 'aws': None }
 
 PREBUILD = [default_images]
 # ============================================================================
