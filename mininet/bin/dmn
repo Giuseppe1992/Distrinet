@@ -167,8 +167,8 @@ from mininet.cloudlink import CloudLink
 from mininet.distrinet import Distrinet
 from mininet.cloudcontroller import (LxcRemoteController, OnosLxcController, RyuLxcController)
 
-from mininet.mapper.mapper import RoundRobinMapper, Mapper, Packing, DummyMapper, BlockMapper, RandomMapper, MaxinetMapper
-from distriopt.embedding.algorithms import ( EmbedBalanced, EmbedILP, EmbedPartition, EmbedGreedy)
+from mininet.mapper.mapper import RoundRobinMapper, Mapper,  DummyMapper, BlockMapper, RandomMapper, MaxinetMapper #Packing,
+from distriopt.embedding.algorithms import ( EmbedBalanced,  EmbedPartition, EmbedGreedy) #EmbedILP,
 from distriopt.packing.algorithms import BestFitDopProduct,FirstFitDecreasingPriority,FirstFitOrderedDeviation
 from mininet.topodc import (DumbbellTopo)
 
