@@ -30,9 +30,9 @@
         update_cache: true
         name        : python3-pip
 
-    - name: install python-pip
-      apt :
-        name        : python-pip
+#    - name: install python-pip
+#      apt :
+#        name        : python-pip
 
     - name: install htop
       apt :
@@ -58,9 +58,9 @@
       apt :
         name: openvswitch-switch
 
-    - name: install btrfs-tools
-      apt:
-        name: btrfs-tools
+#    - name: install btrfs-tools
+#      apt:
+#        name: btrfs-tools
 
     - name: install lxd
       apt:
