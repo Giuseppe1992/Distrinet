@@ -2,7 +2,7 @@ from distriopt import VirtualNetwork
 from distriopt.embedding.physical import PhysicalNetwork
 from distriopt.embedding.algorithms import (
     EmbedBalanced,
-    EmbedILP,
+ #   EmbedILP,
     EmbedPartition,
     EmbedGreedy,
 )
