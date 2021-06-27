@@ -172,7 +172,7 @@ from distriopt.embedding.algorithms import ( EmbedBalanced,  EmbedPartition, Emb
 from distriopt.packing.algorithms import BestFitDopProduct,FirstFitDecreasingPriority,FirstFitOrderedDeviation
 from mininet.topodc import (DumbbellTopo)
 
-from mininet.provision.awsprovision import (optimizationAWSHelper, distrinetAWS)
+#from mininet.provision.awsprovision import (optimizationAWSHelper, distrinetAWS)
 from mininet.dutil import (default_images)
 from mininet.dcli import (DCLI)
 
@@ -194,7 +194,7 @@ MAPPERS = { 'roundRobin': RoundRobinMapper, "block":BlockMapper, "maxinet":Maxin
             "bfdp":BestFitDopProduct,"ffdp":FirstFitDecreasingPriority,"ffod":FirstFitOrderedDeviation}
 
 PROVISIONDEF = 'aws'
-PROVISIONS = { 'aws': optimizationAWSHelper }
+#PROVISIONS = { 'aws': optimizationAWSHelper }
 
 PREBUILD = [default_images]
 # ============================================================================
@@ -411,8 +411,9 @@ class DistrinetRunner( object ):
 
         # == distrinet
         if opts.purge:
+            raise Exception("Removed for compatibility")
             warn(" ** experimental purge! \n")
-            distrinetAWS.removeVPC(VpcId=opts.purge)
+            #distrinetAWS.removeVPC(VpcId=opts.purge)
             warn(f" VPC: {opts.purge} deleted \n")
             exit()
 
@@ -504,41 +505,42 @@ class DistrinetRunner( object ):
         # Provision the cloud
         if opts.provision:
             if opts.provision == "aws":
-                def __packing_helper(d1, l2):
-                    new_d1 = {}
-                    d_values = set(d1.values())
-                    d1_key_mapping = dict()
-                    for dt, id_ in d_values:
-                        for t, ip in l2:
-                            if t == dt:
-                                l2.remove((t, ip))
-                                d1_key_mapping[(dt, id_)] = (t, ip)
-                                break
-                    for vNode in d1.keys():
-                        t, id_ = d1[vNode]
-                        new_d1[vNode] = (t, id_, d1_key_mapping[(t, id_)][1])
+                raise Exception ("Removed for compatibility")
+                #def __packing_helper(d1, l2):
+                #    new_d1 = {}
+                #    d_values = set(d1.values())
+                #    d1_key_mapping = dict()
+                #    for dt, id_ in d_values:
+                #        for t, ip in l2:
+                #            if t == dt:
+                #                l2.remove((t, ip))
+                #                d1_key_mapping[(dt, id_)] = (t, ip)
+                #                break
+                #    for vNode in d1.keys():
+                #        t, id_ = d1[vNode]
+                #        new_d1[vNode] = (t, id_, d1_key_mapping[(t, id_)][1])
 
-                    return new_d1
+                #    return new_d1
 
-                if not opts.mapper or opts.mapper  not in ["bfdp", "ffdp", "ffod"]:
-                    raise ValueError(f"You need to provide an aws mapper if you use aws provision, you provided {opts.mapper}")
+                #if not opts.mapper or opts.mapper  not in ["bfdp", "ffdp", "ffod"]:
+                #    raise ValueError(f"You need to provide an aws mapper if you use aws provision, you provided {opts.mapper}")
 
-                warn( '*** WARNING: Experimental cloud mode!\n' )
+                #warn( '*** WARNING: Experimental cloud mode!\n' )
 
-                if not self.check_if_file_exists(json_path_cloud_prices+".json"):
-                    error(f"{json_path_cloud_prices} does not exist")
-                pack = Packing(virtual_topo=topo,cloud_prices=json_path_cloud_prices,solver=MAPPERS[opts.mapper])
-                if bool(opts.optimization_only):
-                    "OPTIMIZATION ONLY ON AWS -- NOT BOOKING THE RESOURCES"
+                #if not self.check_if_file_exists(json_path_cloud_prices+".json"):
+                #    error(f"{json_path_cloud_prices} does not exist")
+                #pack = Packing(virtual_topo=topo,cloud_prices=json_path_cloud_prices,solver=MAPPERS[opts.mapper])
+                #if bool(opts.optimization_only):
+                #    "OPTIMIZATION ONLY ON AWS -- NOT BOOKING THE RESOURCES"
 
-                    output(set(pack.places.values()))
-                    exit(0)
-                provisioner = PROVISIONS[ opts.provision ](pack.places)
-                jump, master, workerHostsPrivateIp, vpcID = provisioner.deploy()
-                workers = [master] + workerHostsPrivateIp
-                instances_created=distrinetAWS.getAllInstancesInVPC(vpcID)
-                packing_helper = __packing_helper(pack.places,instances_created)
-                places_packing={vNode: packing_helper[vNode][2] for vNode in packing_helper}
+                #    output(set(pack.places.values()))
+                #    exit(0)
+                #provisioner = PROVISIONS[ opts.provision ](pack.places)
+                #jump, master, workerHostsPrivateIp, vpcID = provisioner.deploy()
+                #workers = [master] + workerHostsPrivateIp
+                #instances_created=distrinetAWS.getAllInstancesInVPC(vpcID)
+                #packing_helper = __packing_helper(pack.places,instances_created)
+                #places_packing={vNode: packing_helper[vNode][2] for vNode in packing_helper}
 
         # Cloud already provisioned 
         if opts.workers:
