@@ -343,7 +343,7 @@ class LxcNode (Node):
         info ("create container ({} {} {}) ".format(self.image, self.cpu, self.memory))
         cmds = []
         # initialise the container
-        cmd = "lxc init {} {} ".format(self.image, self.name)
+        cmd = "lxc init {} {} < /dev/null ".format(self.image, self.name)
         info ("{}\n".format(cmd))
         cmds.append(cmd)
 
