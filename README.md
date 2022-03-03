@@ -4,7 +4,7 @@
 
 # Archive Soon
 
-From Giuseppe: "Hi, unfortunately I am not able to maintain Distrinet regularly since I am working on other projects. I will Archive the project soon, so you are free to clone and extend it, but I will not maintain it. Bests Giuseppe"
+From Giuseppe: "Hi, unfortunately I am not able to maintain Distrinet regularly since I am working on other projects. I will Archive the project soon, so you are free to clone and extend it, but I will not maintain it. Best Regards Giuseppe"
 
 # Distrinet
 
